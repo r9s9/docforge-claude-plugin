@@ -18,7 +18,10 @@ if sys.version_info < (3, 10):  # noqa: UP036
     }))
     raise SystemExit(1)
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+# Bundled third-party code (docxtpl). Appended, so an installed copy wins.
+sys.path.append(os.path.join(HERE, "_vendor"))
 
 from docforge.toolkit.cli import main  # noqa: E402
 

@@ -26,13 +26,17 @@ python3 ${CLAUDE_SKILL_DIR}/scripts/docforge_cli.py
 - Every command prints one JSON object. Errors come back as
   `{"ok": false, "error", "hint"}`.
 
-**First run `docforge doctor`.** If it reports `"ok": false`, run the
-`install` command it prints; usually that is only `docxtpl`, which rendering
-needs. If pip refuses with "externally-managed-environment", follow its
-`install_note`:
+**First run `docforge doctor`.** It normally reports `"ok": true`, because the
+plugin bundles the one package Claude's sandboxes tend to lack. If it reports
+`"ok": false`:
 
-- **Disposable sandbox** (chat, Cowork): add `--break-system-packages`.
-- **Someone's own computer:** use the virtual environment it describes.
+1. Tell the person which packages are missing and why they're needed.
+2. Run the `install` command it prints. It installs only those packages, in a
+   virtual environment when the system's Python requires one.
+3. If the result includes `then_run_with`, use that Python instead of
+   `python3` for every later command.
+
+Don't install anything else.
 
 ## Where files are
 
@@ -171,6 +175,8 @@ address, project code) can live in a defaults file. Pass it with
   real Word bullets, and `**bold**` becomes bold.
 - `include_…` fields switch optional blocks on or off. Sections can be
   skipped whole.
-- If the person states a lasting preference ("always use British spelling"),
-  add it to `notes.md` at the package root. In chat, re-zip the package and
-  deliver it.
+- **Remembered preferences:** only when the person asks you to remember
+  something for this template ("always use British spelling"), add it to
+  `notes.md` at the package root and tell them you did. It's a plain text file
+  in their package that they can read, edit or delete. In chat, re-zip the
+  package and deliver it.

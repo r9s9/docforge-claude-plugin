@@ -80,7 +80,8 @@ def test_skill_mentions_only_real_commands_and_files(skill):
 
 def test_manifest_has_directory_fields():
     manifest = json.loads((ROOT / ".claude-plugin" / "plugin.json").read_text())
-    assert manifest["name"] == "docforge"
+    assert manifest["name"] == "docforge-live"
+    assert manifest["displayName"] == "DocForge.live"
     for key in ("version", "description", "author", "license", "homepage"):
         assert manifest.get(key), key
     for key in ("documentationUrl", "supportUrl", "privacyPolicyUrl", "termsOfServiceUrl"):
@@ -89,3 +90,84 @@ def test_manifest_has_directory_fields():
     market = json.loads((ROOT / ".claude-plugin" / "marketplace.json").read_text())
     assert market["plugins"][0]["name"] == manifest["name"]
     assert not (ROOT / "bin").exists()
+
+
+# --- the bundled docxtpl ------------------------------------------------------
+
+FORCE_VENDORED = """
+import importlib.abc, importlib.machinery, runpy, sys
+VENDOR = sys.argv[1]
+class ForceVendored(importlib.abc.MetaPathFinder):
+    # Resolve docxtpl only from the bundled folder, hiding any installed copy.
+    def find_spec(self, name, path, target=None):
+        if name == "docxtpl":
+            return importlib.machinery.PathFinder.find_spec(name, [VENDOR])
+        return None
+sys.meta_path.insert(0, ForceVendored())
+sys.argv = sys.argv[2:]
+runpy.run_path(sys.argv[0], run_name="__main__")
+"""
+
+
+def _run_vendored(skill: Path, *args) -> dict:
+    scripts = skill / "scripts"
+    proc = subprocess.run(
+        [sys.executable, "-c", FORCE_VENDORED, str(scripts / "_vendor"),
+         str(scripts / "docforge_cli.py"), *[str(a) for a in args]],
+        capture_output=True, text=True, timeout=120,
+    )
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    return json.loads(proc.stdout)
+
+
+def test_bundled_docxtpl_fills_templates(tmp_path):
+    skill = ROOT / "skills" / "fill-template"
+    doctor = _run_vendored(skill, "doctor")
+    assert doctor["packages"]["docxtpl"] == "0.20.2 (bundled)"
+    assert "docxtpl==0.20.2" not in doctor.get("missing", [])
+    _run_vendored(skill, "demo", "--out", tmp_path / "d")
+    _run_vendored(skill, "analyze", tmp_path / "d" / "invoice_1.docx",
+                  tmp_path / "d" / "invoice_2.docx", "--work", tmp_path / "w")
+    built = _run_vendored(skill, "build", "--work", tmp_path / "w", "--name", "Invoice",
+                          "--out", tmp_path / "pkg")
+    assert built["with_labels_docx"]  # rendering through docxtpl worked
+    values = tmp_path / "v.json"
+    values.write_text(json.dumps({"values": {"invoice_number": "INV-9", "bill_to": "Acme"}}))
+    rendered = _run_vendored(skill, "render", tmp_path / "pkg", "--values", values,
+                             "--out", tmp_path / "out.docx")
+    assert Path(rendered["output"]).is_file()
+
+
+def test_bundled_code_matches_its_lock():
+    import hashlib
+
+    lock = json.loads((ROOT / "engine" / "_vendor" / "vendor.lock.json").read_text())
+    entry = lock["docxtpl"]
+    assert entry["modified"] is False and entry["license"] == "LGPL-2.1-only"
+    for base in [ROOT / "engine" / "_vendor", *(s / "scripts" / "_vendor" for s in SKILLS)]:
+        assert (base / entry["license_file"]).is_file()
+        for rel, digest in entry["files"].items():
+            assert hashlib.sha256((base / rel).read_bytes()).hexdigest() == digest, base / rel
+
+
+# --- install guidance -----------------------------------------------------------
+
+def test_doctor_installs_into_a_venv_on_managed_pythons(monkeypatch):
+    from docforge.toolkit import deps
+
+    monkeypatch.setattr(deps, "missing_requirements", lambda: ["python-docx==1.2.0"])
+    monkeypatch.setattr(deps, "_externally_managed", lambda: True)
+    out = deps.doctor()
+    assert "--system-site-packages" in out["install"]
+    assert out["install"].endswith("pip install --quiet python-docx==1.2.0")
+    assert out["then_run_with"].endswith(("bin/python", "python.exe"))
+    monkeypatch.setattr(deps, "_externally_managed", lambda: False)
+    out = deps.doctor()
+    assert out["install"].endswith("-m pip install --quiet python-docx==1.2.0")
+    assert "then_run_with" not in out
+
+
+def test_nothing_suggests_breaking_system_packages():
+    for path in [*ROOT.glob("skills/*/SKILL.md"), *ROOT.glob("skills/*/references/*.md"),
+                 ROOT / "README.md", ROOT / "engine" / "docforge" / "toolkit" / "deps.py"]:
+        assert "break-system-packages" not in path.read_text(encoding="utf-8"), path

@@ -35,6 +35,10 @@ For each difference, decide whether it is a **material** compliance problem or
 a benign one, and say why in one specific sentence. Don't restate the
 difference.
 
+Your verdicts help a person review the document; they are not legal advice.
+Say so when you report on contracts or other legal, financial or regulated
+documents, and recommend a qualified review of material changes.
+
 - **Material**:
   - changed obligations, amounts, deadlines, parties or scope
   - missing required content

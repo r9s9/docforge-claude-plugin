@@ -12,6 +12,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "engine"))
+sys.path.append(str(ROOT / "engine" / "_vendor"))  # as the launcher does
 
 from docforge.toolkit.cli import main  # noqa: E402
 

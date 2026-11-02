@@ -5,6 +5,9 @@ In claude.ai chat, only the loaded skill's own folder is copied into the code
 sandbox, so every skill that runs the engine carries its own copy in
 ``scripts/``. ``engine/`` is the one place to edit; this script mirrors it.
 
+It also checks that bundled third-party code (engine/_vendor) is exactly the
+release recorded in vendor.lock.json.
+
 The checks follow Anthropic's plugin pre-submission checklist: every file
 under 256 KiB, at most 512 files, only text, image and font files, no OS junk
 files or symlinks, and no top-level bin/ (which stops claude.ai and Cowork
@@ -19,6 +22,8 @@ from __future__ import annotations
 
 import argparse
 import filecmp
+import hashlib
+import json
 import re
 import shutil
 import subprocess
@@ -30,7 +35,8 @@ ENGINE = ROOT / "engine"
 SKILLS = ("make-template", "fill-template", "check-document")
 
 # What the mirror copies from engine/ into skills/<skill>/scripts/.
-MIRRORED = ("docforge", "docforge_cli.py", "requirements.txt")
+MIRRORED = ("docforge", "docforge_cli.py", "requirements.txt", "_vendor")
+VENDOR_LOCK = ENGINE / "_vendor" / "vendor.lock.json"
 
 MAX_FILE_BYTES = 256 * 1024
 MAX_FILES = 512
@@ -132,6 +138,27 @@ def check_limits() -> list[str]:
     return problems
 
 
+def check_vendor() -> list[str]:
+    """Bundled third-party files are byte-for-byte the locked release (LGPL: unmodified)."""
+    if not VENDOR_LOCK.is_file():
+        return [f"{VENDOR_LOCK.relative_to(ROOT)} is missing"]
+    problems = []
+    base = VENDOR_LOCK.parent
+    for name, entry in json.loads(VENDOR_LOCK.read_text(encoding="utf-8")).items():
+        if not (base / entry["license_file"]).is_file():
+            problems.append(f"{name}: license file {entry['license_file']} is missing")
+        for rel, digest in entry["files"].items():
+            path = base / rel
+            if not path.is_file():
+                problems.append(f"engine/_vendor/{rel}: missing")
+            elif hashlib.sha256(path.read_bytes()).hexdigest() != digest:
+                problems.append(f"engine/_vendor/{rel}: differs from {name} {entry['version']}")
+        on_disk = {p.relative_to(base).as_posix() for p in (base / name).rglob("*.py")}
+        for rel in sorted(on_disk - set(entry["files"])):
+            problems.append(f"engine/_vendor/{rel}: not in vendor.lock.json")
+    return problems
+
+
 def check_pins() -> list[str]:
     """requirements.txt and toolkit/deps.py name the same versions."""
     sys.path.insert(0, str(ENGINE))
@@ -157,7 +184,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if not args.check:
         mirror()
-    problems = check_pins() + stale_mirrors() + check_limits()
+    problems = check_pins() + check_vendor() + stale_mirrors() + check_limits()
     if problems:
         print("Plugin checks failed:\n  " + "\n  ".join(problems), file=sys.stderr)
         if args.check and any("out of date" in p or "missing or extra" in p for p in problems):

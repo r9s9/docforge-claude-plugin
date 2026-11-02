@@ -1,0 +1,19 @@
+{
+  "docxtpl": {
+    "version": "0.20.2",
+    "source": "https://pypi.org/project/docxtpl/0.20.2/",
+    "license": "LGPL-2.1-only",
+    "license_file": "docxtpl-LICENSE.txt",
+    "author": "Eric Lapouyade",
+    "modified": false,
+    "files": {
+      "docxtpl/__init__.py": "43d36b83ee320341d2afddbb6f7a6dc96ead440a4a215519686e8a0746753b26",
+      "docxtpl/__main__.py": "6a898b831b0c7ff845a218c1ecd99d63ef433287678dccc7acdb9d821ca3724e",
+      "docxtpl/inline_image.py": "8d3ad3d04c7a3e81b150e73e2a39d97849a42692eb73636afec8f0d2f09ceeb3",
+      "docxtpl/listing.py": "328b6cdcf2caf68859a1a2ab903c0bc34d93a1d2397fa8768504be2c37d468c4",
+      "docxtpl/richtext.py": "b869edafef5b98c4d4ca513216a38d04d2a03270a8fafe0c75237d26efe9dd4f",
+      "docxtpl/subdoc.py": "a20872bb6a03f06110e3237b0b81378faa5fc26d202ac94e2a75e7984c223478",
+      "docxtpl/template.py": "05c18c6f7856e833e978fa3548c9ec0ea8da8cbeeb52f38ef245a23d9f96a853"
+    }
+  }
+}

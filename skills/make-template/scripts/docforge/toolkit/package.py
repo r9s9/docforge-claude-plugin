@@ -68,7 +68,7 @@ _ZIP_MAX_BYTES = 300 * 1024 * 1024
 
 _README = """DocForge template package: {name}
 
-This folder is a reusable Word template made by the DocForge plugin for Claude.
+This folder is a reusable Word template made by the DocForge.live plugin for Claude.
 Each numbered folder is a version; the highest number is the latest.
 
 - template.docx      the template, with {{{{ tags }}}} where content goes

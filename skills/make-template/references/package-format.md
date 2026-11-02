@@ -48,6 +48,12 @@ unless given `--version N`.
 
 ## Notes
 
-`notes.md` at the package root holds standing preferences for documents made
-from this template, one per line ("Dates as 2 June 2026", "Always sign off
-as the account manager"). The fill-template skill reads it before writing.
+`notes.md` at the package root holds preferences the person asked Claude to
+remember for documents made from this template, one per line ("Dates as
+2 June 2026", "Always sign off as the account manager"). The fill-template
+skill reads it before writing.
+
+- Write to it only when the person asks, and tell them you did.
+- It's a plain text file in their own package, so they can read, edit or
+  delete it.
+- It never holds anything about the person beyond what they asked to keep.

@@ -1,4 +1,4 @@
-# Developing the DocForge plugin
+# Developing the DocForge.live plugin
 
 ## Layout
 
@@ -12,10 +12,12 @@ engine/docforge/                 DocForge's engine (copied) + toolkit/ (plugin c
 engine/docforge_cli.py           the CLI launcher every skill ships
 engine/requirements.txt          pinned runtime packages
 engine/UPSTREAM.md               which DocForge commit the engine came from
+engine/_vendor/                  bundled third-party code (docxtpl), hash-locked
 tools/sync_upstream.py           copies the engine from a DocForge checkout
 tools/build.py                   copies engine/ into each skill; checks directory limits
 tools/run_upstream_tests.py      runs DocForge's own engine tests against the copy
 tests/                           tests for the toolkit and CLI
+evals/                           `claude plugin eval` cases (with and without the plugin)
 ```
 
 Each skill carries its own copy of the engine because claude.ai chat copies
@@ -58,6 +60,21 @@ pytest
 toolkit modules and skill references are adapted from. Review the plugin side
 when one changes.
 
+## Bundled code
+
+`engine/_vendor/docxtpl/` is docxtpl 0.20.2, unmodified and licensed
+LGPL-2.1-only, with its license text next to it. Claude's sandboxes rarely
+have docxtpl, and bundling it means filling templates needs no download.
+
+- `vendor.lock.json` records each file's SHA-256, and `tools/build.py --check`
+  fails if a file differs, so the copy stays unmodified as the license expects.
+- The launcher appends `_vendor` to the end of `sys.path`, so an installed
+  docxtpl wins.
+- To upgrade:
+  1. Copy the new release's `docxtpl/*.py` files from its wheel.
+  2. Update `version` and `files` in `vendor.lock.json`.
+  3. Update `BUNDLED` in `toolkit/deps.py` and the pin in `requirements.txt`.
+
 ## Setup and checks
 
 ```bash
@@ -76,10 +93,38 @@ python engine/docforge_cli.py demo --out docforge-demo
 python engine/docforge_cli.py analyze docforge-demo/invoice_1.docx docforge-demo/invoice_2.docx --work invoice-work
 ```
 
+## Evals
+
+`evals/` holds five cases in the
+[`claude plugin eval`](https://code.claude.com/docs/en/plugin-evals) format:
+
+- make a template
+- fill from a brief
+- check and fix
+- batch
+- one ordinary Word request that must not use the plugin
+
+Each case asks Claude to generate the demo documents first, so no binary
+fixtures are needed.
+
+Run them from the repository root:
+
+```bash
+claude plugin eval . --allow-tools Bash Write Edit
+```
+
+- **Python prerequisites:** the runs use Claude Code's sandboxed Bash, so
+  `python3` on your machine needs the packages in `engine/requirements.txt`
+  (docxtpl is bundled, so it can be left out). The sandbox blocks network
+  access, so install them beforehand.
+- **Cost:** evals use your Claude plan. Each case runs once per arm (with and
+  without the plugin). Use `--runs 3` before a release for steadier scores.
+- **Results:** written to `evals/results/`, which is git-ignored.
+
 ## Testing the plugin in Claude
 
 - **Claude Code:** `claude --plugin-dir .`, then ask for something a skill
-  covers, or run `/docforge:make-template`.
+  covers, or run `/docforge-live:make-template`.
 - **claude.ai and Cowork:**
   1. Zip the repository.
   2. Upload it under **Customize > Plugins > Add > Upload plugin**.

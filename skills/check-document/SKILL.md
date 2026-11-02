@@ -26,13 +26,17 @@ python3 ${CLAUDE_SKILL_DIR}/scripts/docforge_cli.py
 - Every command prints one JSON object. Errors come back as
   `{"ok": false, "error", "hint"}`.
 
-**First run `docforge doctor`.** Checking and fixing work without `docxtpl`,
-so continue even if that is the only package it lists. If anything else is
-missing, run the `install` command it prints. If pip refuses with
-"externally-managed-environment", follow its `install_note`:
+**First run `docforge doctor`.** It normally reports `"ok": true`, because the
+plugin bundles the one package Claude's sandboxes tend to lack. If it reports
+`"ok": false`:
 
-- **Disposable sandbox** (chat, Cowork): add `--break-system-packages`.
-- **Someone's own computer:** use the virtual environment it describes.
+1. Tell the person which packages are missing and why they're needed.
+2. Run the `install` command it prints. It installs only those packages, in a
+   virtual environment when the system's Python requires one.
+3. If the result includes `then_run_with`, use that Python instead of
+   `python3` for every later command.
+
+Don't install anything else.
 
 ## Where files are
 
@@ -91,9 +95,16 @@ material problems there are. Then:
 - **The report file:** deliver the Markdown report. Its side-by-side table
   shows every changed part.
 
+Say plainly what the check is: a comparison with the template that helps a
+person review the document. Your verdicts are not legal advice. For contracts
+and other legal, financial or regulated documents, recommend that a qualified
+person review any material change before the document is relied on, signed
+or sent.
+
 ### 4. Offer the fix
 
-If the report is `fixable`:
+If the report is `fixable`, offer the fix and run it only when the person
+agrees:
 
 ```bash
 docforge fix <package> <document>.docx --out <document>-fixed.docx [--strict]

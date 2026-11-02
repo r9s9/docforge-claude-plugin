@@ -1,8 +1,9 @@
 """Check the packages the engine needs and say exactly how to install what's missing.
 
 Most sandboxes Claude runs code in already have python-docx, lxml, Jinja2,
-pydantic and python-dateutil; docxtpl, which fills templates, is the one
-usually missing. ``doctor`` installs nothing itself: it reports, and prints the
+pydantic and python-dateutil. docxtpl, which fills templates and is usually
+missing, ships with the plugin in ``scripts/_vendor`` (an installed copy takes
+precedence). ``doctor`` installs nothing itself: it reports, and prints the
 command for only the missing pieces.
 """
 
@@ -10,6 +11,7 @@ from __future__ import annotations
 
 import importlib
 import importlib.metadata
+import os
 import shutil
 import sys
 import sysconfig
@@ -27,7 +29,8 @@ REQUIRED: dict[str, tuple[str, str, str]] = {
     "dateutil": ("python-dateutil", "2.8", "2.9.0.post0"),
 }
 
-REQUIREMENTS_FILE = Path(__file__).resolve().parents[2] / "requirements.txt"
+# The docxtpl release bundled in scripts/_vendor (see _vendor/vendor.lock.json).
+BUNDLED = {"docxtpl": "0.20.2"}
 
 
 def _version_tuple(text: str) -> tuple[int, ...]:
@@ -46,9 +49,12 @@ def _version_tuple(text: str) -> tuple[int, ...]:
 
 def _installed_version(import_name: str, dist: str) -> str | None:
     try:
-        importlib.import_module(import_name)
+        module = importlib.import_module(import_name)
     except Exception:  # noqa: BLE001 - any import failure means "not usable"
         return None
+    origin = Path(getattr(module, "__file__", "") or "")
+    if "_vendor" in origin.parts and import_name in BUNDLED:
+        return f"{BUNDLED[import_name]} (bundled)"
     try:
         return importlib.metadata.version(dist)
     except importlib.metadata.PackageNotFoundError:
@@ -106,14 +112,23 @@ def doctor() -> dict:
         )
     if needed:
         report["missing"] = needed
-        report["install"] = f"{sys.executable} -m pip install --quiet " + " ".join(needed)
+        packages_spec = " ".join(needed)
         if _externally_managed():
-            report["install_note"] = (
-                "This Python is system-managed (PEP 668) and may refuse pip. In a "
-                "disposable sandbox, add --break-system-packages. On a personal "
-                "computer, use a virtual environment instead: "
-                f"{sys.executable} -m venv ~/.docforge-venv && "
-                f"~/.docforge-venv/bin/pip install -r {REQUIREMENTS_FILE} "
-                "and then run the CLI with ~/.docforge-venv/bin/python."
+            # The system refuses pip (PEP 668). A virtual environment that still
+            # sees the system's packages needs only the missing ones, and
+            # leaves the system's own packages untouched.
+            venv = Path.home() / ".docforge-venv"
+            vpy = venv / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+            report["install"] = (
+                f"{sys.executable} -m venv --system-site-packages {venv} && "
+                f"{vpy} -m pip install --quiet {packages_spec}"
             )
+            report["then_run_with"] = str(vpy)
+            report["install_note"] = (
+                "This Python is managed by the system, so the packages go into a "
+                "virtual environment that still sees the system's packages. After "
+                "installing, run the CLI with then_run_with instead of python3."
+            )
+        else:
+            report["install"] = f"{sys.executable} -m pip install --quiet {packages_spec}"
     return report
