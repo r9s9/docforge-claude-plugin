@@ -1,0 +1,16 @@
+{
+  "name": "docforge",
+  "description": "DocForge for Claude: reusable Word templates, filled and checked in the original layout.",
+  "owner": {
+    "name": "DocForge",
+    "email": "support@docforge.live",
+    "url": "https://www.docforge.live"
+  },
+  "plugins": [
+    {
+      "name": "docforge",
+      "source": "./",
+      "description": "Make Word templates from examples, fill them in the original layout, and check returned documents against them."
+    }
+  ]
+}

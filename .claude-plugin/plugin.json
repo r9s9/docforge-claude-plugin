@@ -1,0 +1,20 @@
+{
+  "name": "docforge",
+  "displayName": "DocForge",
+  "version": "0.1.0",
+  "description": "Turn finished Word documents into reusable templates, fill them from notes, data or other documents in the exact original layout, and check returned documents against their template. Runs DocForge's open-source document engine locally; Claude does the AI work, so no API key is needed.",
+  "author": {
+    "name": "DocForge",
+    "email": "support@docforge.live",
+    "url": "https://www.docforge.live"
+  },
+  "homepage": "https://www.docforge.live",
+  "repository": "https://github.com/r9s9/docforge-claude-plugin",
+  "license": "MIT",
+  "keywords": ["word", "docx", "templates", "document-automation", "compliance", "mail-merge"],
+  "icon": "./assets/icon.png",
+  "documentationUrl": "https://www.docforge.live/tutorials/",
+  "supportUrl": "https://www.docforge.live/contact/",
+  "privacyPolicyUrl": "https://www.docforge.live/privacy/",
+  "termsOfServiceUrl": "https://www.docforge.live/terms/"
+}
