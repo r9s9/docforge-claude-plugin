@@ -57,8 +57,13 @@ documents" and the toolkit writes seven files to try every skill on:
 ## Install
 
 - **claude.ai and Cowork:** find **DocForge.live** in the plugin directory
-  under **Customize > Plugins**. Or upload a zip of this repository with
-  **Add > Upload plugin**.
+  under **Customize > Plugins**. Or upload a zip of this repository (GitHub's
+  **Code > Download ZIP**) with **Customize > Plugins > Add > Upload plugin**.
+- **claude.ai, as a single skill:** if your account can't upload plugins,
+  upload just the skill with **Customize > Skills > Upload a skill**. That
+  uploader needs a zip with `docforge/SKILL.md` at the top, which
+  `python tools/build.py --skill-zip docforge.zip` makes. The repository zip
+  won't work there, because it is a plugin.
 - **Claude Code:**
   ```
   /plugin marketplace add r9s9/docforge-claude-plugin
@@ -139,7 +144,8 @@ unless you ask for the fix.
 
 | Problem | What to do |
 |---|---|
-| Claude doesn't use the skills in chat | Turn on code execution and file creation in settings, check the plugin is enabled, and mention a template or DocForge in your request. |
+| Claude doesn't use the skill in chat | Turn on code execution and file creation in settings, check the plugin or skill is enabled, and mention a template or DocForge in your request. |
+| "A skill cannot contain a plugin manifest" or "SKILL.md … not nested deeper" | You uploaded the repository zip to **Customize > Skills**. Upload it to **Customize > Plugins** instead, or upload the skill-only zip (see Install). |
 | `doctor` reports missing packages | Let Claude install them; it installs only what is missing. If your organization blocks package downloads, use Claude Code or Cowork on your computer, or ask an admin. |
 | "not a DocForge template package" | Attach the `.zip` (or folder) that making the template produced, not just `template.docx`. The package also holds the field definitions. |
 | Too few or wrong fields | Add more examples (two to five), or tell Claude which parts change. You can rename, retype or remove fields before building. |

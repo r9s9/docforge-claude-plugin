@@ -54,17 +54,46 @@ def test_doctor_reports_packages(cli):
     assert code == (0 if out["ok"] else 1)
 
 
+SPEC_KEYS = {"name", "description", "license", "compatibility", "metadata", "allowed-tools"}
+
+
 @pytest.mark.parametrize("skill", SKILLS, ids=lambda p: p.name)
-def test_skill_frontmatter_and_size(skill):
+def test_skill_follows_the_agent_skills_spec(skill):
+    """The rules skills-ref checks (agentskills.io/specification), plus the
+    claude.ai upload's "invalid characters in name or description"."""
     text = (skill / "SKILL.md").read_text(encoding="utf-8")
-    front = re.match(r"^---\n(.*?)\n---\n", text, re.S)
+    front = re.match(r"^---\n(.*?)\n---\n(.*)$", text, re.S)
     assert front, "SKILL.md needs YAML frontmatter"
+    keys = re.findall(r"^([A-Za-z_-]+):", front.group(1), re.M)
+    assert set(keys) <= SPEC_KEYS, f"frontmatter keys outside the spec: {set(keys) - SPEC_KEYS}"
     name = re.search(r"^name: (.+)$", front.group(1), re.M).group(1).strip()
     description = re.search(r"^description: (.+)$", front.group(1), re.M).group(1).strip()
     assert name == skill.name
-    assert re.fullmatch(r"[a-z0-9-]{1,64}", name)
+    assert re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", name) and len(name) <= 64
     assert 0 < len(description) <= 1024
+    assert not set(description) & set("<>"), "no XML-like tags in the description"
+    assert description.isascii()
     assert len(text.splitlines()) < 500
+    assert len(front.group(2).split()) < 3500, "keep SKILL.md under ~5000 tokens"
+    # Reference files sit one level deep: SKILL.md names every one of them.
+    linked = set(re.findall(r"`(references/[\w.-]+)`", text))
+    present = {f"references/{p.name}" for p in (skill / "references").glob("*.md")}
+    assert present <= linked, f"not linked from SKILL.md: {present - linked}"
+
+
+def test_skill_zip_fits_the_skills_upload(tmp_path):
+    import zipfile
+
+    out = tmp_path / "docforge.zip"
+    proc = subprocess.run([sys.executable, str(ROOT / "tools" / "build.py"), "--skill-zip", str(out)],
+                          capture_output=True, text=True, timeout=120)
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    names = zipfile.ZipFile(out).namelist()
+    assert "docforge/SKILL.md" in names
+    assert all(n.startswith("docforge/") for n in names)
+    assert not any(n.endswith("plugin.json") for n in names), "a skill can't hold a plugin manifest"
+    folders = {str(Path(n).parent) for n in names}
+    assert len(names) + len(folders) <= 200
 
 
 @pytest.mark.parametrize("skill", SKILLS, ids=lambda p: p.name)

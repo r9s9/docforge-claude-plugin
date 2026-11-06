@@ -27,6 +27,20 @@ Read the one that fits the request before running anything:
 A request can span several, such as making a template and then filling it.
 Follow them in order.
 
+The workflows point to these reference files at the step that needs each one:
+
+- `references/classification-rules.md`: what becomes a field and what stays
+  fixed, plus field names and descriptions (making a template)
+- `references/decisions-format.md`: the `decisions.json` file you write when
+  reviewing a template
+- `references/package-format.md`: what a template package holds, versions,
+  and `notes.md`
+- `references/writing-rules.md`: how to write field values, read the result
+  back and refine a draft (filling)
+- `references/values-format.md`: the values file, value shapes, and batch rows
+- `references/judging-rules.md`: kinds of difference, material versus benign,
+  and what the fix does (checking)
+
 ## Run the toolkit
 
 Below, `docforge` means:

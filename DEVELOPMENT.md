@@ -130,6 +130,9 @@ claude plugin eval . --allow-tools Bash Write Edit
   1. Zip the repository.
   2. Upload it under **Customize > Plugins > Add > Upload plugin**.
   3. Turn on code execution and file creation.
+- **claude.ai, skill only:** `python tools/build.py --skill-zip docforge.zip`,
+  then **Customize > Skills > Upload a skill**. That uploader rejects plugin
+  manifests and nested `SKILL.md` files.
 
 ## Releasing
 

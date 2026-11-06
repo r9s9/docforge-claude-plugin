@@ -14,8 +14,10 @@ The engine lives once, in skills/docforge/scripts/, because claude.ai chat
 copies only the active skill's folder into the code sandbox.
 
 Usage:
-  python tools/build.py           run the checks
-  python tools/build.py --check   the same (kept for CI)
+  python tools/build.py                        run the checks
+  python tools/build.py --check                the same (kept for CI)
+  python tools/build.py --skill-zip FILE.zip   also write the skill on its own, for
+                                               claude.ai's Customize > Skills upload
 """
 
 from __future__ import annotations
@@ -26,6 +28,7 @@ import json
 import re
 import subprocess
 import sys
+import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -142,16 +145,35 @@ def check_pins() -> list[str]:
     return problems
 
 
+def write_skill_zip(out: Path) -> int:
+    """The skill alone, as Customize > Skills expects: docforge/SKILL.md at the top.
+
+    The repository zip is a plugin (it has .claude-plugin/plugin.json) and goes
+    to Customize > Plugins instead. Returns the number of zip entries.
+    """
+    skill = ROOT / "skills" / "docforge"
+    files = [p for p in plugin_files() if skill in p.parents]
+    out.parent.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(out, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+        for path in files:
+            zf.write(path, (Path(skill.name) / path.relative_to(skill)).as_posix())
+    return len(files)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--check", action="store_true", help="same as no flag; kept for CI")
-    parser.parse_args(argv)
+    parser.add_argument("--skill-zip", type=Path, help="write the skill alone as a zip here")
+    args = parser.parse_args(argv)
     problems = check_pins() + check_vendor() + check_limits()
     if problems:
         print("Plugin checks failed:\n  " + "\n  ".join(problems), file=sys.stderr)
         return 1
     files = plugin_files()
     print(f"Plugin checks passed ({len(files)} files, {zip_entries(files)} zip entries).")
+    if args.skill_zip:
+        n = write_skill_zip(args.skill_zip)
+        print(f"Wrote {args.skill_zip} ({n} files, top folder docforge/).")
     return 0
 
 
