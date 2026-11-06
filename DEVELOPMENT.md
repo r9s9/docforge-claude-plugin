@@ -132,9 +132,26 @@ claude plugin eval . --allow-tools Bash Write Edit
 
 ## Releasing
 
-1. Raise `version` in `.claude-plugin/plugin.json`.
-2. Make sure CI is green, and that `claude plugin validate --strict .`
-   passes.
-3. Submit or update the listing in the developer portal at
-   [claude.ai/directory/manage](https://claude.ai/directory/manage). Choose
-   **Plugin bundle**, enter this repository, then **Validate** and submit.
+The directory tracks `main`: every commit pushed to it becomes a new
+version that is scanned and, once it passes, can be published. So `main`
+only ever holds a version you mean to release.
+
+**Before the first version is published:** all work goes on `main`, so the
+submission reflects the latest state.
+
+**After the first version is published:** build each new version on its
+own branch (for example `release/1.1.0`), never directly on `main`. For each
+release:
+
+1. On the branch, raise `version` in `.claude-plugin/plugin.json`.
+2. Make sure CI is green there, and that `python tools/build.py --check` and
+   `claude plugin validate --strict .` pass.
+3. Test the branch in Claude (see "Testing the plugin in Claude").
+4. Merge into `main` only when the version is ready to ship. The directory
+   then picks it up, scans it, and publishes it according to the plugin's
+   publish setting.
+
+The first submission is made in the developer portal at
+[claude.ai/directory/manage](https://claude.ai/directory/manage). Choose
+**Plugin bundle**, enter this repository with branch `main`, then
+**Validate** and submit.
