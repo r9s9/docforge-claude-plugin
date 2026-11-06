@@ -50,8 +50,8 @@ python3 "${CLAUDE_SKILL_DIR}/scripts/docforge_cli.py"
 ```
 
 - Keep the quotes: the folder's path can contain spaces.
-- If `${CLAUDE_SKILL_DIR}` appears literally in this text, use the path of
-  the folder this SKILL.md is in. The CLI is at `scripts/docforge_cli.py`
+- If the command above wasn't filled in with a real path (it still shows
+  `CLAUDE_SKILL_DIR`), use the path of the folder this SKILL.md is in. The CLI is at `scripts/docforge_cli.py`
   there. If you don't know that path, find it with:
 
   ```bash

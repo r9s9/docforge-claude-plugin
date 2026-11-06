@@ -116,3 +116,10 @@ def test_chat_relative_path_from_the_skill_folder(tmp_path, relative):
     proc = subprocess.run([sys.executable, relative, "doctor"], cwd=skill,
                           capture_output=True, text=True, timeout=60)
     assert proc.returncode == 0 and json.loads(proc.stdout)["ok"] is True
+
+
+def test_placeholder_only_appears_in_the_command():
+    """Cowork and Code replace every ${CLAUDE_SKILL_DIR}, prose included, so
+    the placeholder must appear only where a path belongs (seen live: a
+    sentence about the placeholder turned into a sentence about a path)."""
+    assert SKILL_MD.count("${CLAUDE_SKILL_DIR}") == 1
