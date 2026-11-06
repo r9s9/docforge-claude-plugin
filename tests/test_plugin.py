@@ -207,6 +207,19 @@ def test_doctor_installs_into_a_venv_on_managed_pythons(monkeypatch):
     assert "then_run_with" not in out
 
 
+def test_install_commands_survive_spaces_in_paths(monkeypatch):
+    import shlex
+
+    from docforge.toolkit import deps
+
+    monkeypatch.setattr(deps.sys, "executable", "/Users/A B/Application Support/python3")
+    monkeypatch.setattr(deps, "missing_requirements", lambda: ["python-docx==1.2.0"])
+    for managed in (True, False):
+        monkeypatch.setattr(deps, "_externally_managed", lambda m=managed: m)
+        first = deps.doctor()["install"].split(" && ")[0]
+        assert shlex.split(first)[0] == "/Users/A B/Application Support/python3"
+
+
 def test_nothing_suggests_breaking_system_packages():
     for path in [*ROOT.glob("skills/*/SKILL.md"), *ROOT.glob("skills/*/references/*.md"),
                  ROOT / "README.md", ROOT / "skills" / "docforge" / "scripts" / "docforge" / "toolkit" / "deps.py"]:

@@ -46,12 +46,17 @@ The workflows point to these reference files at the step that needs each one:
 Below, `docforge` means:
 
 ```bash
-python3 ${CLAUDE_SKILL_DIR}/scripts/docforge_cli.py
+python3 "${CLAUDE_SKILL_DIR}/scripts/docforge_cli.py"
 ```
 
+- Keep the quotes: the folder's path can contain spaces.
 - If `${CLAUDE_SKILL_DIR}` appears literally in this text, use the path of
   the folder this SKILL.md is in. The CLI is at `scripts/docforge_cli.py`
-  there.
+  there. If you don't know that path, find it with:
+
+  ```bash
+  find / -path '*/docforge/scripts/docforge_cli.py' -not -path '/proc/*' 2>/dev/null | head -1
+  ```
 - On Windows, use `python` instead of `python3`.
 - Every command prints one JSON object. Errors come back as
   `{"ok": false, "error", "hint"}`.
@@ -80,9 +85,18 @@ Don't install anything else.
 
 ## Where files are
 
-- **Chat:** attachments are in the uploads folder (usually
-  `/mnt/user-data/uploads`). Work in a scratch folder. Deliver files by saving
-  them in the outputs folder (usually `/mnt/user-data/outputs`).
+- **Chat:**
+  - **Attachments** are in the uploads folder, usually
+    `/mnt/user-data/uploads`. If they aren't there, find them with:
+
+    ```bash
+    find / \( -path /proc -o -path /sys \) -prune -o \( -name '*.docx' -o -name '*.zip' \) -mmin -720 -print 2>/dev/null | grep -v '/scripts/' | head -20
+    ```
+
+  - **Work** in a scratch folder.
+  - **Deliver files** by saving them in the outputs folder, usually
+    `/mnt/user-data/outputs`. If no such folder exists, save them where the
+    app shows files to the person, and say where you saved them.
   - A template package arrives as a `.zip`, which every command accepts
     directly.
   - To change a package (its `notes.md`), unzip it into a scratch folder, work

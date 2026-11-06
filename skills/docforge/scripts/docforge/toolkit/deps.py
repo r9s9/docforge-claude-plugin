@@ -12,6 +12,7 @@ from __future__ import annotations
 import importlib
 import importlib.metadata
 import os
+import shlex
 import shutil
 import sys
 import sysconfig
@@ -119,9 +120,11 @@ def doctor() -> dict:
             # leaves the system's own packages untouched.
             venv = Path.home() / ".docforge-venv"
             vpy = venv / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+            # Quoted: on a Mac the home folder or Python path can contain spaces.
             report["install"] = (
-                f"{sys.executable} -m venv --system-site-packages {venv} && "
-                f"{vpy} -m pip install --quiet {packages_spec}"
+                f"{shlex.quote(sys.executable)} -m venv --system-site-packages "
+                f"{shlex.quote(str(venv))} && "
+                f"{shlex.quote(str(vpy))} -m pip install --quiet {packages_spec}"
             )
             report["then_run_with"] = str(vpy)
             report["install_note"] = (
@@ -130,5 +133,7 @@ def doctor() -> dict:
                 "installing, run the CLI with then_run_with instead of python3."
             )
         else:
-            report["install"] = f"{sys.executable} -m pip install --quiet {packages_spec}"
+            report["install"] = (
+                f"{shlex.quote(sys.executable)} -m pip install --quiet {packages_spec}"
+            )
     return report
