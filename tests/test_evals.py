@@ -43,10 +43,13 @@ def _split(path: Path) -> tuple[dict[str, str], str]:
     return keys, m.group(2).strip()
 
 
-def test_there_are_cases_for_every_skill():
+WORKFLOWS = ("make-template", "fill-template", "check-document")
+
+
+def test_there_are_cases_for_every_workflow():
     tags = " ".join(_split(c / "prompt.md")[0].get("tags", "") for c in CASES)
-    for skill in SKILLS:
-        assert skill in tags, f"no eval case is tagged {skill}"
+    for workflow in WORKFLOWS:
+        assert workflow in tags, f"no eval case is tagged {workflow}"
 
 
 @pytest.mark.parametrize("case", CASES, ids=lambda p: p.name)

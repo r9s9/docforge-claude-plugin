@@ -16,13 +16,16 @@ The plugin packages the open-source [DocForge](https://github.com/r9s9/docforge)
 engine for Claude. There is no account, no API key and no server: Claude does
 the AI work, and your documents stay in Claude's sandbox or on your computer.
 
-## Skills
+## What it does
 
-| Skill | What it does |
+The plugin has one skill, **docforge**, that covers three workflows. Claude
+picks the right one from your request.
+
+| Workflow | What it does |
 |---|---|
-| **make-template** | Builds a template from example documents. Claude proposes the fields, you confirm them, and it saves a versioned template package. |
-| **fill-template** | Fills a template from notes, data or another document. It also revises drafts conversationally and makes many documents at once from a spreadsheet. |
-| **check-document** | Scores a returned document against its template and lists every difference. Claude explains which differences matter, and the boilerplate can be restored. |
+| **Make a template** | Builds a template from example documents. Claude proposes the fields, you confirm them, and it saves a versioned template package. |
+| **Fill a template** | Fills a template from notes, data or another document. It also revises drafts conversationally and makes many documents at once from a spreadsheet. |
+| **Check a document** | Scores a returned document against its template and lists every difference. Claude explains which differences matter, and the boilerplate can be restored. |
 
 ## Example prompts
 
@@ -61,8 +64,8 @@ documents" and the toolkit writes seven files to try every skill on:
   /plugin marketplace add r9s9/docforge-claude-plugin
   /plugin install docforge-live@docforge-live
   ```
-  The skills appear as `/docforge-live:make-template`,
-  `/docforge-live:fill-template` and `/docforge-live:check-document`. A plugin
+  The skill appears as `/docforge-live:docforge`, though asking in plain words
+  works just as well. A plugin
   you added on claude.ai also appears in Claude Code automatically.
 
 In Claude chat, turn on code execution and file creation. The toolkit needs
@@ -95,7 +98,7 @@ Python 3.10 or newer.
   calls.
 - **Installs nothing, normally.** Claude's sandboxes normally have the
   packages the toolkit needs. If one is missing, Claude tells you, then installs only
-  that package at the version pinned in `skills/*/scripts/requirements.txt`
+  that package at the version pinned in `skills/docforge/scripts/requirements.txt`
   from PyPI. It uses a virtual environment when the system's Python requires
   one.
 - **Keeps nothing.** The plugin writes files only where you ask (templates,
@@ -138,7 +141,7 @@ unless you ask for the fix.
 |---|---|
 | Claude doesn't use the skills in chat | Turn on code execution and file creation in settings, check the plugin is enabled, and mention a template or DocForge in your request. |
 | `doctor` reports missing packages | Let Claude install them; it installs only what is missing. If your organization blocks package downloads, use Claude Code or Cowork on your computer, or ask an admin. |
-| "not a DocForge template package" | Attach the `.zip` (or folder) that make-template produced, not just `template.docx`. The package also holds the field definitions. |
+| "not a DocForge template package" | Attach the `.zip` (or folder) that making the template produced, not just `template.docx`. The package also holds the field definitions. |
 | Too few or wrong fields | Add more examples (two to five), or tell Claude which parts change. You can rename, retype or remove fields before building. |
 | A value lands in the wrong place, or is missing | Ask Claude to fix that field, or improve the field's description and rebuild the template. |
 | No PDF | LibreOffice isn't installed. Open the `.docx` and export it to PDF. |
@@ -146,12 +149,11 @@ unless you ask for the fix.
 
 ## What's in this repository
 
-- `skills/`: the three skills. Each has its instructions, reference rules,
-  and its own copy of the toolkit in `scripts/`, because chat loads only the
-  active skill's folder.
-- `engine/`, `tools/`, `tests/`, `evals/`, `.github/`: development files. These
-  are the toolkit's source, the build and upstream-sync tools, tests, eval
-  cases and CI. The skills never run them. See [DEVELOPMENT.md](DEVELOPMENT.md).
+- `skills/docforge/`: the skill. It holds the instructions, the workflow and
+  reference rules, and the toolkit in `scripts/`.
+- `tools/`, `tests/`, `evals/`, `.github/`: development files. These are the
+  build and upstream-sync tools, tests, eval cases and CI. The skill never
+  runs them. See [DEVELOPMENT.md](DEVELOPMENT.md).
 
 ## Links
 

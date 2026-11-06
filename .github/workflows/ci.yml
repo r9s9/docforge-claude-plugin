@@ -19,13 +19,13 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: Install
-        run: python -m pip install -r engine/requirements.txt pytest==9.2.0 ruff==0.17.3
-      - name: Skill copies match engine/ and fit the directory limits
+        run: python -m pip install -r skills/docforge/scripts/requirements.txt pytest==9.2.0 ruff==0.17.3
+      - name: Plugin fits the upload and directory limits
         run: python tools/build.py --check
       - name: Engine matches its upstream lock
         run: python tools/sync_upstream.py --verify
       - name: Lint
-        run: ruff check engine/docforge/toolkit engine/docforge_cli.py tools tests
+        run: ruff check skills/docforge/scripts/docforge/toolkit skills/docforge/scripts/docforge_cli.py tools tests
       - name: Tests
         run: pytest -q
 
@@ -36,7 +36,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Read the upstream commit
         id: lock
-        run: echo "commit=$(python3 -c 'import json;print(json.load(open("engine/upstream.lock.json"))["commit"])')" >> "$GITHUB_OUTPUT"
+        run: echo "commit=$(python3 -c 'import json;print(json.load(open("tools/upstream.lock.json"))["commit"])')" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v4
         with:
           repository: r9s9/docforge
@@ -46,6 +46,6 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install
-        run: python -m pip install -r engine/requirements.txt pytest==9.2.0
+        run: python -m pip install -r skills/docforge/scripts/requirements.txt pytest==9.2.0
       - name: Run upstream engine tests on the copy
         run: python tools/run_upstream_tests.py --from upstream

@@ -3,31 +3,32 @@
 ## Layout
 
 ```
-.claude-plugin/plugin.json       the plugin manifest (this repository is the plugin)
-.claude-plugin/marketplace.json  lets Claude Code add this repo as a marketplace
-skills/<skill>/SKILL.md          what Claude follows
-skills/<skill>/references/       rules and formats the skill points to
-skills/<skill>/scripts/          generated: a copy of engine/ (see below)
-engine/docforge/                 DocForge's engine (copied) + toolkit/ (plugin code)
-engine/docforge_cli.py           the CLI launcher every skill ships
-engine/requirements.txt          pinned runtime packages
-engine/UPSTREAM.md               which DocForge commit the engine came from
-engine/_vendor/                  bundled third-party code (docxtpl), hash-locked
-tools/sync_upstream.py           copies the engine from a DocForge checkout
-tools/build.py                   copies engine/ into each skill; checks directory limits
-tools/run_upstream_tests.py      runs DocForge's own engine tests against the copy
-tests/                           tests for the toolkit and CLI
-evals/                           `claude plugin eval` cases (with and without the plugin)
+.claude-plugin/plugin.json          the plugin manifest (this repository is the plugin)
+.claude-plugin/marketplace.json     lets Claude Code add this repo as a marketplace
+skills/docforge/SKILL.md            what Claude reads first: routing, running the toolkit
+skills/docforge/references/         the three workflows, plus rules and formats
+skills/docforge/scripts/docforge/   DocForge's engine (copied) + toolkit/ (plugin code)
+skills/docforge/scripts/docforge_cli.py   the CLI launcher
+skills/docforge/scripts/requirements.txt  pinned runtime packages
+skills/docforge/scripts/_vendor/    bundled third-party code (docxtpl), hash-locked
+tools/sync_upstream.py              copies the engine from a DocForge checkout
+tools/UPSTREAM.md, upstream.lock.json   which DocForge commit the engine came from
+tools/build.py                      checks the upload and directory limits
+tools/run_upstream_tests.py         runs DocForge's own engine tests against the copy
+tests/                              tests for the toolkit and CLI
+evals/                              `claude plugin eval` cases (with and without the plugin)
 ```
 
-Each skill carries its own copy of the engine because claude.ai chat copies
-only the loaded skill's folder into the code sandbox. **Edit `engine/`, never
-`skills/*/scripts/`**, then run `python tools/build.py`. CI fails when the
-copies are stale.
+There is one skill with three workflows, and the engine lives exactly once,
+in the skill's `scripts/` folder. Claude chat copies only the active skill's
+folder into its sandbox, so a skill can't share code with another. The
+plugin upload also accepts at most 200 zip entries (files plus folders), so
+the engine can't be copied into several skills. `python tools/build.py` checks
+that limit; keep new files few.
 
 ## The engine and upstream
 
-`engine/docforge/` holds the deterministic modules of
+`skills/docforge/scripts/docforge/` holds the deterministic modules of
 [r9s9/docforge](https://github.com/r9s9/docforge):
 
 - reading .docx files
@@ -51,7 +52,7 @@ To pick up upstream changes:
 ```bash
 python tools/sync_upstream.py --from ../docforge --status   # what changed since the last sync
 python tools/sync_upstream.py --from ../docforge            # copy, patch, record the commit
-python tools/build.py                                       # refresh the skill copies
+python tools/build.py                                       # limits and bundled-code checks
 python tools/run_upstream_tests.py --from ../docforge       # upstream's engine tests on the copy
 pytest
 ```
@@ -62,7 +63,7 @@ when one changes.
 
 ## Bundled code
 
-`engine/_vendor/docxtpl/` is docxtpl 0.20.2, unmodified and licensed
+`skills/docforge/scripts/_vendor/docxtpl/` is docxtpl 0.20.2, unmodified and licensed
 LGPL-2.1-only, with its license text next to it. Claude's sandboxes rarely
 have docxtpl, and bundling it means filling templates needs no download.
 
@@ -78,19 +79,19 @@ have docxtpl, and bundling it means filling templates needs no download.
 ## Setup and checks
 
 ```bash
-python3 -m venv .venv && .venv/bin/pip install -r engine/requirements.txt pytest ruff
-.venv/bin/python tools/build.py --check
+python3 -m venv .venv && .venv/bin/pip install -r skills/docforge/scripts/requirements.txt pytest ruff
+.venv/bin/python tools/build.py
 .venv/bin/python tools/sync_upstream.py --verify
 .venv/bin/pytest -q
-.venv/bin/ruff check engine/docforge/toolkit tools tests
+.venv/bin/ruff check skills/docforge/scripts/docforge/toolkit skills/docforge/scripts/docforge_cli.py tools tests
 claude plugin validate --strict .
 ```
 
 To try the CLI directly:
 
 ```bash
-python engine/docforge_cli.py demo --out docforge-demo
-python engine/docforge_cli.py analyze docforge-demo/invoice_1.docx docforge-demo/invoice_2.docx --work invoice-work
+python skills/docforge/scripts/docforge_cli.py demo --out docforge-demo
+python skills/docforge/scripts/docforge_cli.py analyze docforge-demo/invoice_1.docx docforge-demo/invoice_2.docx --work invoice-work
 ```
 
 ## Evals
@@ -114,7 +115,7 @@ claude plugin eval . --allow-tools Bash Write Edit
 ```
 
 - **Python prerequisites:** the runs use Claude Code's sandboxed Bash, so
-  `python3` on your machine needs the packages in `engine/requirements.txt`
+  `python3` on your machine needs the packages in `skills/docforge/scripts/requirements.txt`
   (docxtpl is bundled, so it can be left out). The sandbox blocks network
   access, so install them beforehand.
 - **Cost:** evals use your Claude plan. Each case runs once per arm (with and
@@ -124,7 +125,7 @@ claude plugin eval . --allow-tools Bash Write Edit
 ## Testing the plugin in Claude
 
 - **Claude Code:** `claude --plugin-dir .`, then ask for something a skill
-  covers, or run `/docforge-live:make-template`.
+  covers, or run `/docforge-live:docforge`.
 - **claude.ai and Cowork:**
   1. Zip the repository.
   2. Upload it under **Customize > Plugins > Add > Upload plugin**.

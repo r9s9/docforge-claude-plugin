@@ -25,7 +25,7 @@ import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-ENGINE = ROOT / "engine"
+ENGINE = ROOT / "skills" / "docforge" / "scripts"
 
 # Upstream unit tests that exercise only the copied engine modules.
 CURATED = (
@@ -105,7 +105,7 @@ def _upstream_tests(path: Path) -> Path:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--from", dest="source", type=Path, required=True,
-                        help="DocForge checkout at the commit in engine/UPSTREAM.md")
+                        help="DocForge checkout at the commit in tools/UPSTREAM.md")
     parser.add_argument("pytest_args", nargs="*", help="extra arguments for pytest")
     args = parser.parse_args(argv)
 

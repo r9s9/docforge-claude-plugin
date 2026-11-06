@@ -2,7 +2,7 @@
 """Copy DocForge's deterministic document engine from an upstream checkout.
 
 The plugin runs DocForge's engine inside Claude's code sandbox, and Claude does
-the AI work itself. So only the pure modules are copied into ``engine/docforge``:
+the AI work itself. So only the pure modules are copied into ``skills/docforge/scripts/docforge``:
 reading .docx files, comparing examples, building templates, filling them and
 checking compliance. The AI client, web app, database and storage layers stay
 upstream.
@@ -13,7 +13,7 @@ edits (see ``PATCHES``); an edit whose anchor has moved fails the sync loudly,
 so an upstream change can never slip a model call back into the plugin.
 
 Usage:
-  python tools/sync_upstream.py --from ../docforge           copy, then record engine/upstream.lock.json
+  python tools/sync_upstream.py --from ../docforge           copy, then record tools/upstream.lock.json
   python tools/sync_upstream.py --verify                     the engine matches the lock; imports stay in bounds
   python tools/sync_upstream.py --from ../docforge --status  what changed upstream since the last sync
 """
@@ -29,9 +29,9 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-ENGINE = ROOT / "engine" / "docforge"
-LOCK = ROOT / "engine" / "upstream.lock.json"
-UPSTREAM_MD = ROOT / "engine" / "UPSTREAM.md"
+ENGINE = ROOT / "skills" / "docforge" / "scripts" / "docforge"
+LOCK = ROOT / "tools" / "upstream.lock.json"
+UPSTREAM_MD = ROOT / "tools" / "UPSTREAM.md"
 
 UPSTREAM_REPO = "https://github.com/r9s9/docforge"
 
@@ -84,7 +84,7 @@ ALLOWLIST: tuple[str, ...] = (
     "validator/validator.py",
 )
 
-# Plugin-owned files under engine/docforge: never written by a sync.
+# Plugin-owned files under the engine folder: never written by a sync.
 OWNED_FILES: tuple[str, ...] = (
     "ai/__init__.py",
     "ai_classifier/__init__.py",
@@ -96,16 +96,16 @@ OWNED_DIRS: tuple[str, ...] = ("toolkit",)
 # A change to one of these means a toolkit module or a skill reference may
 # need the same change; --status lists them.
 WATCHED: dict[str, str] = {
-    "services/compliance_fix.py": "engine/docforge/toolkit/fixer.py",
-    "services/preview_docx.py": "engine/docforge/toolkit/samples.py",
-    "services/generation.py": "engine/docforge/toolkit/render.py",
-    "services/publish.py": "engine/docforge/toolkit/package.py",
-    "template_registry/registry.py": "engine/docforge/toolkit/package.py",
-    "ai_classifier/service.py": "engine/docforge/ai_classifier/__init__.py",
-    "ai_classifier/llm.py": "engine/docforge/toolkit/analysis.py (flagging rule)",
-    "ai_router/service.py": "engine/docforge/ai_router/__init__.py",
-    "compliance/judge.py": "engine/docforge/toolkit/compliance.py (verdicts)",
-    "ai/prompts.py": "skills/*/references/*.md (the rules Claude follows)",
+    "services/compliance_fix.py": "toolkit/fixer.py",
+    "services/preview_docx.py": "toolkit/samples.py",
+    "services/generation.py": "toolkit/render.py",
+    "services/publish.py": "toolkit/package.py",
+    "template_registry/registry.py": "toolkit/package.py",
+    "ai_classifier/service.py": "ai_classifier/__init__.py",
+    "ai_classifier/llm.py": "toolkit/analysis.py (flagging rule)",
+    "ai_router/service.py": "ai_router/__init__.py",
+    "compliance/judge.py": "toolkit/compliance.py (verdicts)",
+    "ai/prompts.py": "skills/docforge/references/*.md (the rules Claude follows)",
 }
 
 # The model-calling tail of ai_router/document.py, replaced by its own
@@ -359,7 +359,7 @@ def _write_upstream_md(lock: dict) -> None:
     UPSTREAM_MD.write_text(
         f"""# Engine provenance
 
-`engine/docforge/` is DocForge's deterministic document engine, copied from
+`skills/docforge/scripts/docforge/` is DocForge's deterministic document engine, copied from
 [{lock['upstream'].removeprefix('https://github.com/')}]({lock['upstream']}) by
 `tools/sync_upstream.py`. Don't edit the copied files by hand: change them
 upstream and re-sync, or add an anchored patch to the sync tool.
@@ -382,7 +382,7 @@ Written for the plugin and never touched by a sync:
 ## Watched upstream files
 
 The plugin adapts logic or rules from these files without copying them. When
-one changes, review the plugin file named next to it:
+one changes, review the plugin file named next to it (paths under the engine folder):
 
 {watched}
 
@@ -396,7 +396,7 @@ one changes, review the plugin file named next to it:
 
 def verify() -> None:
     if not LOCK.is_file():
-        raise SyncError("engine/upstream.lock.json is missing; run a sync first")
+        raise SyncError("tools/upstream.lock.json is missing; run a sync first")
     lock = json.loads(LOCK.read_text(encoding="utf-8"))
     problems: list[str] = []
     for rel, hashes in sorted(lock["files"].items()):
@@ -442,7 +442,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--from", dest="source", type=Path, help="DocForge checkout (repo root or package dir)")
     parser.add_argument("--ref", help="label to record instead of the checkout's git commit")
-    parser.add_argument("--verify", action="store_true", help="check engine/ against the lock")
+    parser.add_argument("--verify", action="store_true", help="check the engine against the lock")
     parser.add_argument("--status", action="store_true", help="with --from: report upstream changes")
     args = parser.parse_args(argv)
     try:

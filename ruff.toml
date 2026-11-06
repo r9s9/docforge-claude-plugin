@@ -1,7 +1,7 @@
 # Same rules as the DocForge backend (backend/pyproject.toml).
 line-length = 100
 target-version = "py310"
-extend-exclude = ["skills/*/scripts", "engine/_vendor"]
+extend-exclude = ["skills/docforge/scripts/_vendor"]
 
 [lint]
 select = ["E", "F", "I", "B", "UP", "W"]

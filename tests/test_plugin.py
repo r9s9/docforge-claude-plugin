@@ -69,13 +69,24 @@ def test_skill_frontmatter_and_size(skill):
 
 @pytest.mark.parametrize("skill", SKILLS, ids=lambda p: p.name)
 def test_skill_mentions_only_real_commands_and_files(skill):
-    text = (skill / "SKILL.md").read_text(encoding="utf-8")
     commands = set(build_parser()._subparsers._group_actions[0].choices)  # noqa: SLF001
-    used = set(re.findall(r"\bdocforge ([a-z][a-z-]+)", text))
+    docs = [skill / "SKILL.md", *sorted((skill / "references").glob("*.md"))]
+    used: set[str] = set()
+    for doc in docs:
+        text = doc.read_text(encoding="utf-8")
+        used |= set(re.findall(r"\bdocforge ([a-z][a-z-]+)", text))
+        for ref in re.findall(r"`(references/[\w.-]+)`", text):
+            assert (skill / ref).is_file(), f"{doc.name}: {ref} is referenced but missing"
     assert used, "the skill should show how to run the toolkit"
     assert used <= commands, f"unknown commands: {used - commands}"
-    for ref in re.findall(r"`(references/[\w.-]+)`", text):
-        assert (skill / ref).is_file(), f"{ref} is referenced but missing"
+    # Every workflow the SKILL.md routes to exists, and every command is documented.
+    assert commands <= used, f"undocumented commands: {commands - used}"
+
+
+def test_fits_upload_and_directory_limits():
+    proc = subprocess.run([sys.executable, str(ROOT / "tools" / "build.py")],
+                          capture_output=True, text=True, timeout=120)
+    assert proc.returncode == 0, proc.stdout + proc.stderr
 
 
 def test_manifest_has_directory_fields():
@@ -121,7 +132,7 @@ def _run_vendored(skill: Path, *args) -> dict:
 
 
 def test_bundled_docxtpl_fills_templates(tmp_path):
-    skill = ROOT / "skills" / "fill-template"
+    skill = ROOT / "skills" / "docforge"
     doctor = _run_vendored(skill, "doctor")
     assert doctor["packages"]["docxtpl"] == "0.20.2 (bundled)"
     assert "docxtpl==0.20.2" not in doctor.get("missing", [])
@@ -141,10 +152,10 @@ def test_bundled_docxtpl_fills_templates(tmp_path):
 def test_bundled_code_matches_its_lock():
     import hashlib
 
-    lock = json.loads((ROOT / "engine" / "_vendor" / "vendor.lock.json").read_text())
+    lock = json.loads((ROOT / "skills" / "docforge" / "scripts" / "_vendor" / "vendor.lock.json").read_text())
     entry = lock["docxtpl"]
     assert entry["modified"] is False and entry["license"] == "LGPL-2.1-only"
-    for base in [ROOT / "engine" / "_vendor", *(s / "scripts" / "_vendor" for s in SKILLS)]:
+    for base in [s / "scripts" / "_vendor" for s in SKILLS]:
         assert (base / entry["license_file"]).is_file()
         for rel, digest in entry["files"].items():
             assert hashlib.sha256((base / rel).read_bytes()).hexdigest() == digest, base / rel
@@ -169,5 +180,5 @@ def test_doctor_installs_into_a_venv_on_managed_pythons(monkeypatch):
 
 def test_nothing_suggests_breaking_system_packages():
     for path in [*ROOT.glob("skills/*/SKILL.md"), *ROOT.glob("skills/*/references/*.md"),
-                 ROOT / "README.md", ROOT / "engine" / "docforge" / "toolkit" / "deps.py"]:
+                 ROOT / "README.md", ROOT / "skills" / "docforge" / "scripts" / "docforge" / "toolkit" / "deps.py"]:
         assert "break-system-packages" not in path.read_text(encoding="utf-8"), path

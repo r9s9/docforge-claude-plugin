@@ -1,45 +1,40 @@
 #!/usr/bin/env python3
-"""Copy the engine into each skill, and check the plugin against the directory's limits.
+"""Check the plugin against the limits of Claude's apps and Anthropic's directory.
 
-In claude.ai chat, only the loaded skill's own folder is copied into the code
-sandbox, so every skill that runs the engine carries its own copy in
-``scripts/``. ``engine/`` is the one place to edit; this script mirrors it.
+- Bundled third-party code (skills/docforge/scripts/_vendor) is exactly the
+  release recorded in vendor.lock.json, unmodified as its license expects.
+- requirements.txt and toolkit/deps.py name the same pinned versions.
+- The plugin fits Claude's plugin upload: at most 200 entries (files and
+  folders) in a zip of the repository, which is the plugin folder.
+- Anthropic's pre-submission checklist: every file under 256 KiB, only text,
+  image and font files, no OS junk files or symlinks, and no top-level bin/
+  (which stops claude.ai and Cowork from installing the plugin).
 
-It also checks that bundled third-party code (engine/_vendor) is exactly the
-release recorded in vendor.lock.json.
-
-The checks follow Anthropic's plugin pre-submission checklist: every file
-under 256 KiB, at most 512 files, only text, image and font files, no OS junk
-files or symlinks, and no top-level bin/ (which stops claude.ai and Cowork
-from installing the plugin).
+The engine lives once, in skills/docforge/scripts/, because claude.ai chat
+copies only the active skill's folder into the code sandbox.
 
 Usage:
-  python tools/build.py           mirror the engine into the skills, then check
-  python tools/build.py --check   fail if a mirror is stale or a limit is broken (CI)
+  python tools/build.py           run the checks
+  python tools/build.py --check   the same (kept for CI)
 """
 
 from __future__ import annotations
 
 import argparse
-import filecmp
 import hashlib
 import json
 import re
-import shutil
 import subprocess
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-ENGINE = ROOT / "engine"
-SKILLS = ("make-template", "fill-template", "check-document")
-
-# What the mirror copies from engine/ into skills/<skill>/scripts/.
-MIRRORED = ("docforge", "docforge_cli.py", "requirements.txt", "_vendor")
-VENDOR_LOCK = ENGINE / "_vendor" / "vendor.lock.json"
+SCRIPTS = ROOT / "skills" / "docforge" / "scripts"
+VENDOR_LOCK = SCRIPTS / "_vendor" / "vendor.lock.json"
 
 MAX_FILE_BYTES = 256 * 1024
-MAX_FILES = 512
+# claude.ai "Upload plugin" refuses larger zips: "Zip contains too many files (maximum 200)".
+MAX_ZIP_ENTRIES = 200
 TEXT_EXTENSIONS = {
     ".py", ".md", ".txt", ".json", ".jsonl", ".csv", ".yml", ".yaml", ".toml", ".cfg",
     ".ini", ".sh", ".svg", "",
@@ -48,54 +43,7 @@ MEDIA_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".ttf", ".otf", ".
 JUNK_NAMES = {".DS_Store", "Thumbs.db", "desktop.ini"}
 
 
-def _ignore(_dir: str, names: list[str]) -> set[str]:
-    return {n for n in names if n in ("__pycache__", ".pytest_cache") or n.endswith(".pyc")}
-
-
-def _files(base: Path) -> list[Path]:
-    return sorted(
-        p for p in base.rglob("*")
-        if p.is_file() and "__pycache__" not in p.parts and not p.name.endswith(".pyc")
-    )
-
-
-def mirror() -> None:
-    for skill in SKILLS:
-        dest = ROOT / "skills" / skill / "scripts"
-        dest.mkdir(parents=True, exist_ok=True)
-        for name in MIRRORED:
-            src, out = ENGINE / name, dest / name
-            if out.is_dir():
-                shutil.rmtree(out)
-            elif out.exists():
-                out.unlink()
-            if src.is_dir():
-                shutil.copytree(src, out, ignore=_ignore)
-            else:
-                shutil.copyfile(src, out)
-    print(f"Mirrored the engine into {len(SKILLS)} skills.")
-
-
-def stale_mirrors() -> list[str]:
-    problems = []
-    for skill in SKILLS:
-        dest = ROOT / "skills" / skill / "scripts"
-        for name in MIRRORED:
-            src, out = ENGINE / name, dest / name
-            if src.is_dir():
-                want = {p.relative_to(src) for p in _files(src)}
-                have = {p.relative_to(out) for p in _files(out)} if out.is_dir() else set()
-                for rel in sorted(want ^ have):
-                    problems.append(f"skills/{skill}/scripts/{name}/{rel}: missing or extra")
-                for rel in sorted(want & have):
-                    if not filecmp.cmp(src / rel, out / rel, shallow=False):
-                        problems.append(f"skills/{skill}/scripts/{name}/{rel}: out of date")
-            elif not out.is_file() or not filecmp.cmp(src, out, shallow=False):
-                problems.append(f"skills/{skill}/scripts/{name}: missing or out of date")
-    return problems
-
-
-def _plugin_files() -> list[Path]:
+def plugin_files() -> list[Path]:
     """Files that would be committed (the plugin folder is the repo root)."""
     try:
         out = subprocess.run(
@@ -105,15 +53,31 @@ def _plugin_files() -> list[Path]:
         paths = [ROOT / p for p in out.split("\0") if p]
     except (OSError, subprocess.SubprocessError):
         skip = {".git", ".venv", "__pycache__", ".pytest_cache", ".ruff_cache"}
-        paths = [p for p in ROOT.rglob("*") if not skip & set(p.relative_to(ROOT).parts)]
+        paths = [
+            p for p in ROOT.rglob("*")
+            if p.is_file() and not skip & set(p.relative_to(ROOT).parts)
+        ]
     return sorted(p for p in paths if p.exists() or p.is_symlink())
+
+
+def zip_entries(files: list[Path]) -> int:
+    """Files plus every folder holding them, plus the top-level folder, as a zip lists them."""
+    folders = {"."}
+    for path in files:
+        for parent in path.relative_to(ROOT).parents:
+            folders.add(parent.as_posix())
+    return len(files) + len(folders)
 
 
 def check_limits() -> list[str]:
     problems = []
-    files = _plugin_files()
-    if len(files) > MAX_FILES:
-        problems.append(f"{len(files)} files; the directory reviews plugins over {MAX_FILES} by hand")
+    files = plugin_files()
+    entries = zip_entries(files)
+    if entries > MAX_ZIP_ENTRIES:
+        problems.append(
+            f"a zip of the plugin holds {entries} entries (files and folders); "
+            f"Claude's plugin upload accepts at most {MAX_ZIP_ENTRIES}"
+        )
     if (ROOT / "bin").exists():
         problems.append("a top-level bin/ stops claude.ai and Cowork from installing the plugin")
     for path in files:
@@ -150,24 +114,24 @@ def check_vendor() -> list[str]:
         for rel, digest in entry["files"].items():
             path = base / rel
             if not path.is_file():
-                problems.append(f"engine/_vendor/{rel}: missing")
+                problems.append(f"_vendor/{rel}: missing")
             elif hashlib.sha256(path.read_bytes()).hexdigest() != digest:
-                problems.append(f"engine/_vendor/{rel}: differs from {name} {entry['version']}")
+                problems.append(f"_vendor/{rel}: differs from {name} {entry['version']}")
         on_disk = {p.relative_to(base).as_posix() for p in (base / name).rglob("*.py")}
         for rel in sorted(on_disk - set(entry["files"])):
-            problems.append(f"engine/_vendor/{rel}: not in vendor.lock.json")
+            problems.append(f"_vendor/{rel}: not in vendor.lock.json")
     return problems
 
 
 def check_pins() -> list[str]:
     """requirements.txt and toolkit/deps.py name the same versions."""
-    sys.path.insert(0, str(ENGINE))
+    sys.path.insert(0, str(SCRIPTS))
     try:
         from docforge.toolkit.deps import REQUIRED
     finally:
         sys.path.pop(0)
     pins = {}
-    for line in (ENGINE / "requirements.txt").read_text(encoding="utf-8").splitlines():
+    for line in (SCRIPTS / "requirements.txt").read_text(encoding="utf-8").splitlines():
         m = re.match(r"^\s*([A-Za-z0-9_.-]+)==([^\s#]+)", line)
         if m:
             pins[m.group(1).lower()] = m.group(2)
@@ -180,17 +144,14 @@ def check_pins() -> list[str]:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--check", action="store_true", help="check only; change nothing")
-    args = parser.parse_args(argv)
-    if not args.check:
-        mirror()
-    problems = check_pins() + check_vendor() + stale_mirrors() + check_limits()
+    parser.add_argument("--check", action="store_true", help="same as no flag; kept for CI")
+    parser.parse_args(argv)
+    problems = check_pins() + check_vendor() + check_limits()
     if problems:
         print("Plugin checks failed:\n  " + "\n  ".join(problems), file=sys.stderr)
-        if args.check and any("out of date" in p or "missing or extra" in p for p in problems):
-            print("Run `python tools/build.py` to refresh the skill copies.", file=sys.stderr)
         return 1
-    print(f"Plugin checks passed ({len(_plugin_files())} files).")
+    files = plugin_files()
+    print(f"Plugin checks passed ({len(files)} files, {zip_entries(files)} zip entries).")
     return 0
 
 
