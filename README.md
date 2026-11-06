@@ -19,13 +19,16 @@ the AI work, and your documents stay in Claude's sandbox or on your computer.
 ## What it does
 
 The plugin has one skill, **docforge**, that covers three workflows. Claude
-picks the right one from your request.
+picks the right one from your request. In Cowork and Claude Code you can also
+pick the workflow yourself with its command, such as
+`/docforge-live:make-template invoice_1.docx invoice_2.docx`. In Claude chat,
+just ask in plain words.
 
-| Workflow | What it does |
-|---|---|
-| **Make a template** | Builds a template from example documents. Claude proposes the fields, you confirm them, and it saves a versioned template package. |
-| **Fill a template** | Fills a template from notes, data or another document. It also revises drafts conversationally and makes many documents at once from a spreadsheet. |
-| **Check a document** | Scores a returned document against its template and lists every difference. Claude explains which differences matter, and the boilerplate can be restored. |
+| Workflow | Command | What it does |
+|---|---|---|
+| **Make a template** | `/docforge-live:make-template` | Builds a template from example documents. Claude proposes the fields, you confirm them, and it saves a versioned template package. |
+| **Fill a template** | `/docforge-live:fill-template` | Fills a template from notes, data or another document. It also revises drafts conversationally and makes many documents at once from a spreadsheet. |
+| **Check a document** | `/docforge-live:check-document` | Scores a returned document against its template and lists every difference. Claude explains which differences matter, and the boilerplate can be restored. |
 
 ## Example prompts
 
@@ -63,14 +66,15 @@ documents" and the toolkit writes seven files to try every skill on:
   upload just the skill with **Customize > Skills > Upload a skill**. That
   uploader needs a zip with `docforge/SKILL.md` at the top, which
   `python tools/build.py --skill-zip docforge.zip` makes. The repository zip
-  won't work there, because it is a plugin.
+  won't work there, because it is a plugin. The skill on its own has no
+  commands, but asking in plain words does the same.
 - **Claude Code:**
   ```
   /plugin marketplace add r9s9/docforge-claude-plugin
   /plugin install docforge-live@docforge-live
   ```
-  The skill appears as `/docforge-live:docforge`, though asking in plain words
-  works just as well. A plugin
+  The skill appears as `/docforge-live:docforge`, next to the three workflow
+  commands, though asking in plain words works just as well. A plugin
   you added on claude.ai also appears in Claude Code automatically.
 
 In Claude chat, turn on code execution and file creation. The toolkit needs
@@ -157,6 +161,8 @@ unless you ask for the fix.
 
 - `skills/docforge/`: the skill. It holds the instructions, the workflow and
   reference rules, and the toolkit in `scripts/`.
+- `commands/`: the three workflow commands. Each one starts its workflow in
+  the skill.
 - `tools/`, `tests/`, `evals/`, `.github/`: development files. These are the
   build and upstream-sync tools, tests, eval cases and CI. The skill never
   runs them. See [DEVELOPMENT.md](DEVELOPMENT.md).

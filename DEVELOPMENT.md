@@ -11,6 +11,7 @@ skills/docforge/scripts/docforge/   DocForge's engine (copied) + toolkit/ (plugi
 skills/docforge/scripts/docforge_cli.py   the CLI launcher
 skills/docforge/scripts/requirements.txt  pinned runtime packages
 skills/docforge/scripts/_vendor/    bundled third-party code (docxtpl), hash-locked
+commands/                           /docforge-live:make-template, fill-template, check-document
 tools/sync_upstream.py              copies the engine from a DocForge checkout
 tools/UPSTREAM.md, upstream.lock.json   which DocForge commit the engine came from
 tools/build.py                      checks the upload and directory limits
@@ -25,6 +26,12 @@ folder into its sandbox, so a skill can't share code with another. The
 plugin upload also accepts at most 200 zip entries (files plus folders), so
 the engine can't be copied into several skills. `python tools/build.py` checks
 that limit; keep new files few.
+
+The three commands in `commands/` are entry points only. Each one names a
+workflow and hands over to the docforge skill, which holds the toolkit and the
+rules. They load as slash commands in Claude Code and Cowork, and as skills
+in claude.ai chat, so they hold no paths or placeholders other than one
+`$ARGUMENTS`. `tests/test_plugin.py` checks that.
 
 ## The engine and upstream
 
@@ -125,7 +132,8 @@ claude plugin eval . --allow-tools Bash Write Edit
 ## Testing the plugin in Claude
 
 - **Claude Code:** `claude --plugin-dir .`, then ask for something a skill
-  covers, or run `/docforge-live:docforge`.
+  covers, or run `/docforge-live:docforge` or one of the three commands, such
+  as `/docforge-live:make-template`.
 - **claude.ai and Cowork:**
   1. Zip the repository.
   2. Upload it under **Customize > Plugins > Add > Upload plugin**.

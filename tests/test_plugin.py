@@ -224,3 +224,36 @@ def test_nothing_suggests_breaking_system_packages():
     for path in [*ROOT.glob("skills/*/SKILL.md"), *ROOT.glob("skills/*/references/*.md"),
                  ROOT / "README.md", ROOT / "skills" / "docforge" / "scripts" / "docforge" / "toolkit" / "deps.py"]:
         assert "break-system-packages" not in path.read_text(encoding="utf-8"), path
+
+
+COMMANDS = sorted((ROOT / "commands").glob("*.md"))
+COMMAND_KEYS = {"description", "argument-hint"}
+
+
+def test_there_is_a_command_per_workflow():
+    assert [p.stem for p in COMMANDS] == ["check-document", "fill-template", "make-template"]
+
+
+@pytest.mark.parametrize("command", COMMANDS, ids=lambda p: p.stem)
+def test_command_routes_to_the_docforge_skill(command):
+    """Commands load in Code and Cowork as /docforge-live:<name>, and in chat as a
+    skill. They carry no files of their own, so each hands over to the docforge
+    skill's workflow, which holds the toolkit and the rules."""
+    text = command.read_text(encoding="utf-8")
+    front = re.match(r"^---\n(.*?)\n---\n(.*)$", text, re.S)
+    assert front, "a command needs YAML frontmatter"
+    keys = set(re.findall(r"^([A-Za-z_-]+):", front.group(1), re.M))
+    assert keys <= COMMAND_KEYS and "description" in keys, keys
+    description = re.search(r"^description: (.+)$", front.group(1), re.M).group(1).strip()
+    assert 0 < len(description) <= 250 and description.isascii()
+    assert not set(description) & set("<>")
+    assert "DocForge" in description, "keep the description from matching unrelated Word tasks"
+    body = front.group(2)
+    workflow = f"references/{command.stem}.md"
+    assert f"`{workflow}`" in body and (SKILLS[0] / workflow).is_file()
+    title = (SKILLS[0] / workflow).read_text(encoding="utf-8").splitlines()[0].lstrip("# ").strip()
+    assert f'"{title}"' in body, f"name the workflow as its file does: {title}"
+    assert "**docforge** skill" in body and "`SKILL.md`" in body
+    # Cowork and Code substitute every $ARGUMENTS, so it appears once, where the request goes.
+    assert body.count("$ARGUMENTS") == 1
+    assert "${" not in body, "chat may leave placeholders unfilled; commands need no paths"
