@@ -88,9 +88,11 @@ have docxtpl, and bundling it means filling templates needs no download.
 
 ## Setup and checks
 
+Create a virtual environment in `.venv` with the packages in
+`skills/docforge/scripts/requirements.txt`, plus the pytest and ruff versions
+that `.github/workflows/ci.yml` names. Then run:
+
 ```bash
-python3 -m venv .venv
-.venv/bin/pip install -r skills/docforge/scripts/requirements.txt pytest==9.2.0 ruff==0.17.3
 .venv/bin/python tools/build.py
 .venv/bin/python tools/sync_upstream.py --verify
 .venv/bin/pytest -q

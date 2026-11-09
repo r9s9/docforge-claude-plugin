@@ -13,7 +13,7 @@ it against its template, explains what changed and why it matters, and can put
 the boilerplate back.
 
 The plugin packages the open-source [DocForge](https://github.com/r9s9/docforge)
-engine for Claude. There is no account, no API key and no server: Claude does
+engine for Claude. There is nothing to sign up for and no server: Claude does
 the AI work, and your documents stay in Claude's sandbox or on your computer.
 
 ## What it does
