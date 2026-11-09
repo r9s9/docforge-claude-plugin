@@ -5,102 +5,57 @@
 ```
 .claude-plugin/plugin.json          the plugin manifest (this repository is the plugin)
 .claude-plugin/marketplace.json     lets Claude Code add this repo as a marketplace
-skills/docforge/SKILL.md            what Claude reads first: routing, running the toolkit
+skills/docforge/SKILL.md            what Claude reads first: routing, setting up and running the toolkit
 skills/docforge/references/         the three workflows, plus rules and formats
-skills/docforge/scripts/docforge/   DocForge's engine (copied) + toolkit/ (plugin code)
-skills/docforge/scripts/docforge_cli.py   the CLI launcher
-skills/docforge/scripts/requirements.txt  pinned runtime packages
-skills/docforge/scripts/_vendor/    bundled third-party code (docxtpl), hash-locked
 commands/                           /docforge-live:make-template, fill-template, check-document
-tools/sync_upstream.py              copies the engine from a local DocForge copy
-tools/UPSTREAM.md, upstream.lock.json   which DocForge commit the engine came from
-tools/build.py                      checks the upload and directory limits
-tools/run_upstream_tests.py         runs DocForge's own engine tests against the copy
-tests/                              tests for the toolkit and CLI
+assets/icon.svg                     the listing icon (the docforge.live mark, no <style>)
 evals/                              test cases for Claude Code's plugin evals (with and without the plugin)
+.github/workflows/ci.yml            runs the plugin checks
 ```
 
-There is one skill with three workflows, and the engine lives exactly once,
-in the skill's `scripts/` folder. Claude chat copies only the active skill's
-folder into its sandbox, so a skill can't share code with another. The
-plugin upload also accepts at most 200 zip entries (files plus folders), so
-the engine can't be copied into several skills. `python tools/build.py` checks
-that limit; keep new files few.
+The plugin holds only Markdown, JSON, YAML and the icon. Anthropic's
+directory accepts nothing else from an organization it hasn't verified, so
+there is no code here. The code the skill runs is DocForge's toolkit, the
+`docforge-live` package, built in
+[r9s9/docforge-toolkit](https://github.com/r9s9/docforge-toolkit) and installed
+from PyPI at the version `SKILL.md` pins.
 
-The three commands in `commands/` are entry points only. Each one names a
-workflow and hands over to the docforge skill, which holds the toolkit and the
-rules. They load as slash commands in Claude Code and Cowork, and as skills
-in claude.ai chat, so they hold no paths or placeholders other than one
-`$ARGUMENTS`. `tests/test_plugin.py` checks that.
+The three commands are entry points only. Each one names a workflow and hands
+over to the docforge skill, which holds the rules. They load as slash commands
+in Claude Code and Cowork, and as skills in claude.ai chat, so they hold no
+paths or placeholders other than one `$ARGUMENTS`.
 
-## The engine and upstream
+## Checks
 
-`skills/docforge/scripts/docforge/` holds the deterministic modules of
-[r9s9/docforge](https://github.com/r9s9/docforge):
+The plugin's checks are Python, so they live in docforge-toolkit's
+`plugin_checks/` folder. This repository's CI checks that repository out and
+runs them against this one. They cover:
 
-- reading .docx files
-- comparing examples
-- classifying elements and deriving fields
-- building templates
-- rendering, validation and compliance
+- only the file types, sizes and counts the directory and Claude's uploaders
+  accept
+- text the directory's scan reads as shell commands
+- the Agent Skills spec, the commands, the hand-over rules and the eval format
+- the toolkit commands `SKILL.md` and the references mention, which must all
+  exist
+- one pinned `docforge-live` version everywhere
+- the whole make, fill and check flow, set up by following `SKILL.md`'s own
+  steps: install the pinned version from PyPI into a fresh environment, then
+  run the workflows
 
-The web app's model client, prompts, database and storage are left out.
-Claude does the AI work, guided by the skill references, which are distilled
-from the app's `ai/prompts.py`.
+To run them locally, have docforge-toolkit next to this repository, install
+it with pytest, and run pytest on its `plugin_checks` folder with
+`--plugin` pointing here. Also run `claude plugin validate --strict .`.
 
-- **Owned by the plugin, never overwritten by a sync:**
-  - `toolkit/`
-  - three package `__init__.py` files that export only the no-model path
-- **Patched on copy:** `ai_router/document.py` gets anchored edits that remove
-  model calls. The sync fails loudly if upstream changes shape there.
+## Changing the toolkit
 
-To pick up upstream changes, with a local copy of r9s9/docforge next to this
-repository:
+1. Change it in docforge-toolkit and release a new version there (see its
+   README, "Releasing").
+2. Here, raise the pinned version in `skills/docforge/SKILL.md` everywhere it
+   appears ("Run the toolkit"); the checks fail if two pins disagree.
+3. Raise `version` in `.claude-plugin/plugin.json` and release the plugin
+   (see "Releasing").
 
-1. `tools/sync_upstream.py --from ../docforge --status` lists what changed
-   since the last sync.
-2. `tools/sync_upstream.py --from ../docforge` copies the engine, applies the
-   patches and records the commit.
-3. Run the checks below, plus `tools/run_upstream_tests.py --from ../docforge`
-   for upstream's own engine tests on the copy.
-4. Set `ref:` in `.github/workflows/ci.yml` to the new commit in
-   `tools/upstream.lock.json`; a test fails until the two match.
-
-`--status` also lists watched upstream files: the services and prompts that
-toolkit modules and skill references are adapted from. Review the plugin side
-when one changes.
-
-## Bundled code
-
-`skills/docforge/scripts/_vendor/docxtpl/` is docxtpl 0.20.2, unmodified and licensed
-LGPL-2.1-only, with its license text next to it. Claude's sandboxes rarely
-have docxtpl, and bundling it means filling templates works offline.
-
-- `vendor.lock.json` records each file's SHA-256, and `tools/build.py --check`
-  fails if a file differs, so the copy stays unmodified as the license expects.
-- The launcher appends `_vendor` to the end of `sys.path`, so a docxtpl
-  that Python already has wins.
-- To upgrade:
-  1. Copy the new release's `docxtpl/*.py` files into `_vendor/docxtpl/`.
-  2. Update `version` and `files` in `vendor.lock.json`.
-  3. Update `BUNDLED` in `toolkit/deps.py` and the pin in `requirements.txt`.
-
-## Setup and checks
-
-`.github/workflows/ci.yml` is the reference: its "test" job lists the
-packages to have in a virtual environment and every check to run, and the
-"upstream-parity" job runs upstream's engine tests. Run the same checks
-before pushing:
-
-- `tools/build.py`: the upload, directory and bundled-code checks
-- `tools/sync_upstream.py --verify`: the engine still matches its upstream
-  lock
-- `pytest`: the tests in `tests/`
-- `ruff check`, with the settings in the workflow's Lint step
-- `claude plugin validate --strict .`
-
-To try the CLI directly, run `skills/docforge/scripts/docforge_cli.py demo`
-with `--out` and a folder name, then `analyze` on two of the demo invoices.
+Never pin a version before it is on PyPI.
 
 ## Evals
 
@@ -120,10 +75,8 @@ fixtures are needed.
 Run them from the repository root with Claude Code's plugin eval command,
 allowing the Bash, Write and Edit tools.
 
-- **Python prerequisites:** the runs use Claude Code's sandboxed Bash, so
-  `python3` on your machine needs the packages in `skills/docforge/scripts/requirements.txt`
-  (docxtpl is bundled, so it can be left out). The sandbox is offline, so
-  set them up beforehand.
+- **Toolkit:** the runs use Claude Code's sandboxed Bash, which is offline,
+  so have the pinned `docforge-live` version in your `python3` beforehand.
 - **Cost:** evals use your Claude plan. Each case runs once per arm (with and
   without the plugin). Use `--runs 3` before a release for steadier scores.
 - **Results:** written to `evals/results/`, which is git-ignored.
@@ -137,9 +90,12 @@ allowing the Bash, Write and Edit tools.
   1. Zip the repository.
   2. Upload it under **Customize > Plugins > Add > Upload plugin**.
   3. Turn on code execution and file creation.
-- **claude.ai, skill only:** `python tools/build.py --skill-zip docforge.zip`,
-  then **Customize > Skills > Upload a skill**. That uploader rejects plugin
-  manifests and nested `SKILL.md` files.
+- **claude.ai, skill only:** zip the `skills/docforge` folder, so that
+  `docforge/SKILL.md` is at the top, then **Customize > Skills > Upload a
+  skill**. That uploader rejects plugin manifests and nested `SKILL.md` files.
+
+The first test in a new environment shows the toolkit being installed from
+PyPI; later ones find it already there.
 
 ## Releasing
 
@@ -155,8 +111,8 @@ own branch (for example `release/1.1.0`), never directly on `main`. For each
 release:
 
 1. On the branch, raise `version` in `.claude-plugin/plugin.json`.
-2. Make sure CI is green there, and that `python tools/build.py --check` and
-   `claude plugin validate --strict .` pass.
+2. Make sure CI is green there, and that `claude plugin validate --strict .`
+   passes.
 3. Test the branch in Claude (see "Testing the plugin in Claude").
 4. Merge into `main` only when the version is ready to ship. The directory
    then picks it up, scans it, and publishes it according to the plugin's

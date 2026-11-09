@@ -12,9 +12,11 @@ an email, a spreadsheet or another document, and the result is a finished
 it against its template, explains what changed and why it matters, and can put
 the boilerplate back.
 
-The plugin packages the open-source [DocForge](https://github.com/r9s9/docforge)
-engine for Claude. There is nothing to sign up for and no server: Claude does
-the AI work, and your documents stay in Claude's sandbox or on your computer.
+The plugin teaches Claude to use the open-source
+[DocForge](https://github.com/r9s9/docforge) engine, which Claude installs from
+PyPI as the `docforge-live` package the first time it's needed. There is
+nothing to sign up for and no server: Claude does the AI work, and your
+documents stay in Claude's sandbox or on your computer.
 
 ## What it does
 
@@ -74,10 +76,10 @@ documents" and the toolkit writes seven files to try every skill on:
   **Code > Download ZIP**) with **Customize > Plugins > Add > Upload plugin**.
 - **claude.ai, as a single skill:** if your account can't upload plugins,
   upload just the skill with **Customize > Skills > Upload a skill**. That
-  uploader needs a zip with `docforge/SKILL.md` at the top, which
-  `python tools/build.py --skill-zip docforge.zip` makes. The repository zip
-  won't work there, because it is a plugin. The skill on its own has no
-  commands, but asking in plain words does the same.
+  uploader needs a zip with `docforge/SKILL.md` at the top: zip the
+  `skills/docforge` folder of this repository. The repository zip won't work
+  there, because it is a plugin. The skill on its own has no commands, but
+  asking in plain words does the same.
 - **Claude Code:**
   ```
   /plugin marketplace add r9s9/docforge-claude-plugin
@@ -88,7 +90,8 @@ documents" and the toolkit writes seven files to try every skill on:
   you added on claude.ai also appears in Claude Code automatically.
 
 In Claude chat, turn on code execution and file creation. The toolkit needs
-Python 3.10 or newer.
+Python 3.10 or newer, and access to PyPI the first time it's installed (see
+below).
 
 ## How to use it
 
@@ -107,21 +110,22 @@ Python 3.10 or newer.
 
 ## What it runs, and what it sends
 
-- **Runs locally.** The skills run a Python toolkit that ships inside the
-  plugin, in Claude's code sandbox or on your computer. It contains three
-  things, all as readable source:
-  - DocForge's document engine
-  - a command-line wrapper
-  - docxtpl, an open-source library for filling Word templates (see
-    [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md))
-- **Sends nothing.** Documents are read and written locally. The plugin sends
-  nothing to DocForge or to anyone else, has no telemetry and makes no network
-  calls.
-- **Installs nothing, normally.** Claude's sandboxes normally have the
-  packages the toolkit needs. If one is missing, Claude tells you, then installs only
-  that package at the version pinned in `skills/docforge/scripts/requirements.txt`
-  from PyPI. It uses a virtual environment when the system's Python requires
-  one.
+- **Runs locally.** The skill runs DocForge's toolkit, the open-source
+  `docforge-live` package (MIT; source at
+  [github.com/r9s9/docforge-toolkit](https://github.com/r9s9/docforge-toolkit)),
+  in Claude's code sandbox or on your computer. It holds DocForge's document
+  engine and the command line the skill calls. The plugin itself contains only
+  instructions.
+- **Downloads one pinned package.** The first time the toolkit is needed,
+  Claude tells you, then installs `docforge-live` version 1.0.0 from PyPI with
+  the libraries it depends on: python-docx, docxtpl, lxml, Jinja2, pydantic
+  and python-dateutil. In Claude chat that happens once per conversation; in
+  Cowork and Claude Code once per computer, in a private virtual environment
+  when the system's Python requires one.
+- **Sends nothing.** Documents are read and written locally. Neither the
+  plugin nor the toolkit sends anything to DocForge or to anyone else, and
+  there's no telemetry. The download above is the only network use, and it
+  sends none of your documents.
 - **Keeps nothing.** The plugin writes files only where you ask (templates,
   documents, reports) and a scratch folder for the work in progress. It
   retains nothing else.
@@ -153,6 +157,9 @@ unless you ask for the fix.
 - **Checking a Full template:** a Full template has no fixed wording, so a
   check against it covers structure, formatting and fields, not wording. Make
   a Smart template to check wording.
+- **Internet on first use:** installing the toolkit needs access to PyPI.
+  Where package downloads are blocked, for example by an organization's
+  settings for Claude chat, the plugin can't run.
 - **What stays as-is:** text boxes, shapes, charts and embedded objects stay
   exactly as they are, but their contents don't become fields. Pictures stay
   as in the example unless you choose to make them replaceable (PNG or JPEG).
@@ -165,7 +172,7 @@ unless you ask for the fix.
 |---|---|
 | Claude doesn't use the skill in chat | Turn on code execution and file creation in settings, check the plugin or skill is enabled, and mention a template or DocForge in your request. |
 | "A skill cannot contain a plugin manifest" or "SKILL.md … not nested deeper" | You uploaded the repository zip to **Customize > Skills**. Upload it to **Customize > Plugins** instead, or upload the skill-only zip (see Install). |
-| `doctor` reports missing packages | Let Claude install them; it installs only what is missing. If your organization blocks package downloads, use Claude Code or Cowork on your computer, or ask an admin. |
+| The toolkit can't be installed | Claude couldn't reach PyPI. In Claude chat, allow network access for package installs in the settings, or ask your admin. In Cowork or Claude Code, install the `docforge-live` package (version 1.0.0) with pip yourself. |
 | "not a DocForge template package" | Attach the `.zip` (or folder) that making the template produced, not just `template.docx`. The package also holds the field definitions. |
 | Too few or wrong fields | Add more examples (two to five), or tell Claude which parts change. You can rename, retype or remove fields before building. |
 | A cover block or another table kept its text | Ask for a Full template, or tell Claude which parts of the table change. Every paragraph in a table cell can be a field, including tables inside cells. |
@@ -176,13 +183,14 @@ unless you ask for the fix.
 
 ## What's in this repository
 
-- `skills/docforge/`: the skill. It holds the instructions, the workflow and
-  reference rules, and the toolkit in `scripts/`.
+- `skills/docforge/`: the skill: its instructions and the workflow and
+  reference rules.
 - `commands/`: the three workflow commands. Each one starts its workflow in
   the skill.
-- `tools/`, `tests/`, `evals/`, `.github/`: development files. These are the
-  build and upstream-sync tools, tests, eval cases and CI. The skill never
-  runs them. See [DEVELOPMENT.md](DEVELOPMENT.md).
+- `evals/`, `.github/`: eval cases and CI. See [DEVELOPMENT.md](DEVELOPMENT.md).
+
+The code the skill runs is in
+[r9s9/docforge-toolkit](https://github.com/r9s9/docforge-toolkit).
 
 ## Links
 
@@ -195,5 +203,6 @@ unless you ask for the fix.
 
 ## License
 
-[MIT](LICENSE) © The DocForge Authors. The bundled docxtpl is LGPL-2.1; see
-[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+[MIT](LICENSE) © The DocForge Authors. The `docforge-live` toolkit it installs
+is MIT too; its dependencies come from PyPI under their own licenses (docxtpl
+is LGPL-2.1).

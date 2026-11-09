@@ -10,7 +10,7 @@ the original layout, and checks returned documents against them. It edits the
 Word file itself, so fonts, tables, headers, footers and numbering stay exactly
 as they were.
 
-The toolkit in `scripts/` does the deterministic work: reading, comparing,
+DocForge's toolkit (see "Run the toolkit") does the deterministic work: reading, comparing,
 building, rendering, scoring. You do the judgement: what is boilerplate and
 what is content, what to write in each field, and which differences matter.
 
@@ -43,20 +43,14 @@ The workflows point to these reference files at the step that needs each one:
 
 ## Run the toolkit
 
-Below, `docforge` means:
+The deterministic work is done by DocForge's toolkit, the open-source
+`docforge-live` package on PyPI. This skill uses version 1.0.0. Below,
+`docforge` means:
 
 ```bash
-python3 "${CLAUDE_SKILL_DIR}/scripts/docforge_cli.py"
+python3 -m docforge.toolkit
 ```
 
-- Keep the quotes: the folder's path can contain spaces.
-- If the command above wasn't filled in with a real path (it still shows
-  `CLAUDE_SKILL_DIR`), use the path of the folder this SKILL.md is in. The CLI is at `scripts/docforge_cli.py`
-  there. If you don't know that path, find it with:
-
-  ```bash
-  find / -path '*/docforge/scripts/docforge_cli.py' -not -path '/proc/*' 2>/dev/null | head -1
-  ```
 - On Windows, use `python` instead of `python3`.
 - Every command prints one JSON object. Errors come back as
   `{"ok": false, "error", "hint"}`.
@@ -71,17 +65,43 @@ python3 "${CLAUDE_SKILL_DIR}/scripts/docforge_cli.py"
   - `docforge pdf <file>.docx` converts to PDF when LibreOffice is
     installed.
 
-**First run `docforge doctor`.** It normally reports `"ok": true`, because the
-plugin bundles the one package Claude's sandboxes tend to lack. If it reports
-`"ok": false`:
+### Set it up first
 
-1. Tell the person which packages are missing and why they're needed.
-2. Run the `install` command it prints. It installs only those packages, in a
-   virtual environment when the system's Python requires one.
-3. If the result includes `then_run_with`, use that Python instead of
-   `python3` for every later command.
+Run `docforge doctor`. When it prints JSON with `"ok": true` and
+`"toolkit": "1.0.0"`, the toolkit is ready. Otherwise (no module named
+`docforge`, or another version):
 
-Don't install anything else.
+1. If the folder `~/.docforge-venv` exists, try its Python:
+   `~/.docforge-venv/bin/python -m docforge.toolkit doctor`. If that reports
+   `"toolkit": "1.0.0"`, use `~/.docforge-venv/bin/python` instead of
+   `python3` from now on.
+2. Otherwise tell the person, in one sentence, that you're installing
+   DocForge's toolkit (the `docforge-live` package) from PyPI. Then install
+   exactly this version:
+
+   ```bash
+   python3 -m pip install --quiet "docforge-live==1.0.0"
+   ```
+
+3. If pip refuses because the environment is "externally managed", install it
+   into a private virtual environment instead, and use that Python instead of
+   `python3` from now on:
+
+   ```bash
+   python3 -m venv --system-site-packages ~/.docforge-venv
+   ~/.docforge-venv/bin/python -m pip install --quiet "docforge-live==1.0.0"
+   ```
+
+   On Windows, that Python is `%USERPROFILE%\.docforge-venv\Scripts\python.exe`.
+4. Run `docforge doctor` again. If it still reports `"ok": false`, run the
+   `install` command it prints, which installs only the missing pieces, and
+   if it prints `then_run_with`, use that Python.
+
+If the install can't reach PyPI, stop and tell the person that DocForge's
+toolkit couldn't be downloaded here. In Claude chat, network access for
+package installs can be off in the settings or turned off by an admin. In
+Cowork and Claude Code, they can install `docforge-live==1.0.0` with pip
+themselves. Install nothing else, and no other version.
 
 ## Where files are
 
@@ -90,7 +110,7 @@ Don't install anything else.
     `/mnt/user-data/uploads`. If they aren't there, find them with:
 
     ```bash
-    find / \( -path /proc -o -path /sys \) -prune -o \( -name '*.docx' -o -name '*.zip' \) -mmin -720 -print 2>/dev/null | grep -v '/scripts/' | head -20
+    find / \( -path /proc -o -path /sys \) -prune -o \( -name '*.docx' -o -name '*.zip' \) -mmin -720 -print 2>/dev/null | head -20
     ```
 
   - **Work** in a scratch folder.

@@ -16,16 +16,18 @@ version.
 
 ## Scope
 
-The plugin runs a Python toolkit locally, in Claude's code sandbox or on your
-computer. It reads and writes Word files and sends nothing over the network
+The plugin's skill runs DocForge's toolkit, the `docforge-live` package,
+locally, in Claude's code sandbox or on your computer. It reads and writes
+Word files; its only network use is installing the pinned package from PyPI
 (see "What it runs, and what it sends" in the [README](README.md)). Reports
 about any of these are in scope:
 
-- the toolkit in `skills/docforge/scripts/`, including the copied DocForge
-  engine and the bundled docxtpl
+- the skill and command instructions in `skills/` and `commands/`, including
+  how they install the toolkit
+- the toolkit, whose code is in
+  [github.com/r9s9/docforge-toolkit](https://github.com/r9s9/docforge-toolkit)
 - how it handles untrusted `.docx` and `.zip` files: zip bombs, path
   traversal, XML parsing and template rendering
-- the skill and command instructions in `skills/` and `commands/`
 
 Problems in the DocForge web app belong to
 [github.com/r9s9/docforge](https://github.com/r9s9/docforge), and problems in

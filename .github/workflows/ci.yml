@@ -8,50 +8,23 @@ permissions:
   contents: read
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python: ["3.10", "3.13"]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python }}
-      - name: Install
-        run: python -m pip install -r skills/docforge/scripts/requirements.txt pytest==9.2.0 ruff==0.17.3
-      - name: Plugin fits the upload and directory limits
-        run: python tools/build.py --check
-      - name: Engine matches its upstream lock
-        run: python tools/sync_upstream.py --verify
-      - name: Lint
-        # The settings live here rather than in a ruff.toml: the plugin directory
-        # accepts only Markdown, JSON, code and images in the plugin folder.
-        run: >-
-          ruff check --isolated --line-length 100 --target-version py310
-          --extend-exclude skills/docforge/scripts/_vendor
-          --select E,F,I,B,UP,W --ignore E501,UP042
-          --config "lint.isort.known-first-party = ['docforge']"
-          skills/docforge/scripts/docforge/toolkit skills/docforge/scripts/docforge_cli.py tools tests
-      - name: Tests
-        run: pytest -q
-
-  upstream-parity:
-    # DocForge's own engine tests, run against the plugin's copy of the engine.
+  plugin-checks:
+    # The plugin holds no code, so its checks live in r9s9/docforge-toolkit
+    # (plugin_checks/) and run here against this repository. They also set
+    # the toolkit up by following SKILL.md and run the workflows with it.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # The commit recorded in tools/upstream.lock.json; tests/test_plugin.py
-      # fails when the two differ, so a re-sync updates both.
+        with:
+          path: plugin
       - uses: actions/checkout@v4
         with:
-          repository: r9s9/docforge
-          ref: 4880faa8cfb39be7f155b5db8c9e3bc54ee2193f
-          path: upstream
+          repository: r9s9/docforge-toolkit
+          path: toolkit
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Install
-        run: python -m pip install -r skills/docforge/scripts/requirements.txt pytest==9.2.0
-      - name: Run upstream engine tests on the copy
-        run: python tools/run_upstream_tests.py --from upstream
+      - name: Install the checks
+        run: python -m pip install ./toolkit pytest==9.2.0
+      - name: Plugin checks
+        run: python -m pytest toolkit/plugin_checks --plugin plugin -p no:cacheprovider

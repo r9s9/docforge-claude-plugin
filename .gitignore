@@ -1,15 +1,5 @@
 # Local development
 .venv/
-__pycache__/
-*.pyc
-.pytest_cache/
-.ruff_cache/
-*.egg-info/
-
-# Scratch output from trying the CLI
-/out/
-/docforge-demo/
-/*-work/
 
 # Eval run output
 /evals/results/
