@@ -190,6 +190,7 @@ unless you ask for the fix.
 - The DocForge app: [github.com/r9s9/docforge](https://github.com/r9s9/docforge)
 - Support: [support@docforge.live](mailto:support@docforge.live) or
   [docforge.live/contact](https://www.docforge.live/contact/)
+- Security reports: see [SECURITY.md](SECURITY.md)
 - Privacy: [docforge.live/privacy](https://www.docforge.live/privacy/)
 
 ## License
