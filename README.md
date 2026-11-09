@@ -196,6 +196,9 @@ The code the skill runs is in
 
 - Website and tutorial: [docforge.live](https://www.docforge.live)
 - The DocForge app: [github.com/r9s9/docforge](https://github.com/r9s9/docforge)
+- The toolkit the plugin installs:
+  [github.com/r9s9/docforge-toolkit](https://github.com/r9s9/docforge-toolkit),
+  published as [docforge-live on PyPI](https://pypi.org/project/docforge-live/)
 - Support: [support@docforge.live](mailto:support@docforge.live) or
   [docforge.live/contact](https://www.docforge.live/contact/)
 - Security reports: see [SECURITY.md](SECURITY.md)
