@@ -293,3 +293,10 @@ def test_listing_icon_is_text():
     binaries = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".ttf", ".otf", ".woff", ".woff2"}
     assert not [p for p in ROOT.rglob("*") if p.suffix.lower() in binaries
                 and not {".git", ".venv"} & set(p.relative_to(ROOT).parts)]
+
+
+def test_eval_cases_write_amounts_without_a_dollar_sign():
+    """The directory's scan reads "$" before a digit ("$1,800") as a shell
+    variable, a command assembled at run time, in prompts Claude acts on."""
+    for path in sorted((ROOT / "evals").rglob("*.md")):
+        assert not re.search(r"\$[0-9]", path.read_text(encoding="utf-8")), path

@@ -12,7 +12,7 @@ skills/docforge/scripts/docforge_cli.py   the CLI launcher
 skills/docforge/scripts/requirements.txt  pinned runtime packages
 skills/docforge/scripts/_vendor/    bundled third-party code (docxtpl), hash-locked
 commands/                           /docforge-live:make-template, fill-template, check-document
-tools/sync_upstream.py              copies the engine from a DocForge checkout
+tools/sync_upstream.py              copies the engine from a local DocForge copy
 tools/UPSTREAM.md, upstream.lock.json   which DocForge commit the engine came from
 tools/build.py                      checks the upload and directory limits
 tools/run_upstream_tests.py         runs DocForge's own engine tests against the copy
@@ -54,7 +54,7 @@ from the app's `ai/prompts.py`.
 - **Patched on copy:** `ai_router/document.py` gets anchored edits that remove
   model calls. The sync fails loudly if upstream changes shape there.
 
-To pick up upstream changes, with a checkout of r9s9/docforge next to this
+To pick up upstream changes, with a local copy of r9s9/docforge next to this
 repository:
 
 1. `tools/sync_upstream.py --from ../docforge --status` lists what changed
@@ -74,14 +74,14 @@ when one changes.
 
 `skills/docforge/scripts/_vendor/docxtpl/` is docxtpl 0.20.2, unmodified and licensed
 LGPL-2.1-only, with its license text next to it. Claude's sandboxes rarely
-have docxtpl, and bundling it means filling templates needs no download.
+have docxtpl, and bundling it means filling templates works offline.
 
 - `vendor.lock.json` records each file's SHA-256, and `tools/build.py --check`
   fails if a file differs, so the copy stays unmodified as the license expects.
-- The launcher appends `_vendor` to the end of `sys.path`, so an installed
-  docxtpl wins.
+- The launcher appends `_vendor` to the end of `sys.path`, so a docxtpl
+  that Python already has wins.
 - To upgrade:
-  1. Copy the new release's `docxtpl/*.py` files from its wheel.
+  1. Copy the new release's `docxtpl/*.py` files into `_vendor/docxtpl/`.
   2. Update `version` and `files` in `vendor.lock.json`.
   3. Update `BUNDLED` in `toolkit/deps.py` and the pin in `requirements.txt`.
 
@@ -121,8 +121,8 @@ Run them from the repository root with
 
 - **Python prerequisites:** the runs use Claude Code's sandboxed Bash, so
   `python3` on your machine needs the packages in `skills/docforge/scripts/requirements.txt`
-  (docxtpl is bundled, so it can be left out). The sandbox blocks network
-  access, so install them beforehand.
+  (docxtpl is bundled, so it can be left out). The sandbox is offline, so
+  set them up beforehand.
 - **Cost:** evals use your Claude plan. Each case runs once per arm (with and
   without the plugin). Use `--runs 3` before a release for steadier scores.
 - **Results:** written to `evals/results/`, which is git-ignored.

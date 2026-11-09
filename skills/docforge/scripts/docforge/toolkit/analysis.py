@@ -264,7 +264,7 @@ def analyze(files: list[str], work: str | Path, mode: str = "full") -> dict:
             raise ToolkitError(f"{root} exists and is not a folder")
         if any(root.iterdir()) and not (root / WORKSPACE).is_file():
             raise ToolkitError(f"{root} is not empty; choose a new folder for the workspace")
-        # Re-analysis: node ids may change, so earlier decisions are set aside.
+        # Re-analysis: node ids may change, so earlier decisions move to decisions.previous.json.
         old = root / DECISIONS
         if old.is_file():
             old.replace(root / "decisions.previous.json")

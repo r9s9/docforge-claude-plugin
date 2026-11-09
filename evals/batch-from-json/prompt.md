@@ -14,13 +14,13 @@ Then make one invoice per record below, saved in `out/batch/`:
 ```json
 [
   {"invoice_number": "INV-301", "invoice_date": "2026-11-03", "customer": "Acme & Co",
-   "line_items": [{"description": "Audit", "qty": "1", "unit_price": "$800.00", "amount": "$800.00"}],
-   "total_due": "$800.00"},
+   "line_items": [{"description": "Audit", "qty": "1", "unit_price": "USD 800.00", "amount": "USD 800.00"}],
+   "total_due": "USD 800.00"},
   {"invoice_number": "INV-302", "invoice_date": "2026-11-04", "customer": "Globex LLC",
-   "line_items": [{"description": "Training", "qty": "3", "unit_price": "$300.00", "amount": "$900.00"}],
-   "total_due": "$900.00"},
+   "line_items": [{"description": "Training", "qty": "3", "unit_price": "USD 300.00", "amount": "USD 900.00"}],
+   "total_due": "USD 900.00"},
   {"invoice_number": "INV-303", "invoice_date": "2026-11-05", "customer": "Initech",
-   "line_items": [{"description": "Support", "qty": "2", "unit_price": "$400.00", "amount": "$800.00"}],
-   "total_due": "$800.00"}
+   "line_items": [{"description": "Support", "qty": "2", "unit_price": "USD 400.00", "amount": "USD 800.00"}],
+   "total_due": "USD 800.00"}
 ]
 ```
