@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none">
+  <style>
+    .tile { fill: #f5f1ea; }
+    .ink { stroke: #231f1a; }
+    .field { fill: #b0622f; }
+    @media (prefers-color-scheme: dark) {
+      .tile { fill: #191511; }
+      .ink { stroke: #f0eae1; }
+      .field { fill: #d99a6c; }
+    }
+  </style>
+  <rect class="tile" width="64" height="64" rx="14"/>
+  <g transform="translate(8 8) scale(2)">
+    <path class="ink" d="M13.2 2.75H7.75C6.784 2.75 6 3.534 6 4.5v15c0 .966.784 1.75 1.75 1.75h8.5c.966 0 1.75-.784 1.75-1.75V7.55L13.2 2.75Z" stroke-width="1.6" stroke-linejoin="round"/>
+    <path class="ink" d="M13.1 3.1v3.3c0 .884.716 1.6 1.6 1.6h3.2" stroke-width="1.6" stroke-linejoin="round"/>
+    <line class="ink" x1="9" y1="11.6" x2="15" y2="11.6" stroke-width="1.6" stroke-linecap="round" opacity="0.45"/>
+    <line class="ink" x1="9" y1="14.5" x2="12.8" y2="14.5" stroke-width="1.6" stroke-linecap="round" opacity="0.45"/>
+    <rect class="field" x="9" y="16.7" width="6" height="1.9" rx="0.95"/>
+  </g>
+</svg>

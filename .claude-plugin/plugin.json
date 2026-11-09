@@ -19,7 +19,7 @@
     "compliance",
     "mail-merge"
   ],
-  "icon": "./assets/icon.png",
+  "icon": "./assets/icon.svg",
   "documentationUrl": "https://www.docforge.live/tutorials/",
   "supportUrl": "https://www.docforge.live/contact/",
   "privacyPolicyUrl": "https://www.docforge.live/privacy/",

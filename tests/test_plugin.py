@@ -268,3 +268,25 @@ def test_every_workflow_hands_over_its_files(skill):
     for workflow in ("make-template.md", "fill-template.md", "check-document.md"):
         assert '"Hand over the files"' in (skill / "references" / workflow).read_text(encoding="utf-8")
     assert "hand_over" in (skill / "references" / "make-template.md").read_text(encoding="utf-8")
+
+
+def test_ci_checks_out_the_locked_upstream_commit():
+    """CI names the commit directly rather than passing it through a GitHub
+    variable, which the directory's scan reads as a credential."""
+    commit = json.loads((ROOT / "tools" / "upstream.lock.json").read_text(encoding="utf-8"))["commit"]
+    ci = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    assert f"ref: {commit}" in ci
+    assert "$GITHUB_" not in ci
+
+
+def test_listing_icon_is_text():
+    """The directory holds every version that ships a binary image for a
+    reviewer; an SVG is read and screened like any other text file."""
+    manifest = json.loads((ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
+    icon = ROOT / manifest["icon"]
+    assert icon.suffix == ".svg" and icon.is_file()
+    svg = icon.read_text(encoding="utf-8").lower()
+    assert "<svg" in svg and not any(bad in svg for bad in ("<script", "href", "onload", "foreignobject"))
+    binaries = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".ttf", ".otf", ".woff", ".woff2"}
+    assert not [p for p in ROOT.rglob("*") if p.suffix.lower() in binaries
+                and not {".git", ".venv"} & set(p.relative_to(ROOT).parts)]

@@ -34,13 +34,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Read the upstream commit
-        id: lock
-        run: echo "commit=$(python3 -c 'import json;print(json.load(open("tools/upstream.lock.json"))["commit"])')" >> "$GITHUB_OUTPUT"
+      # The commit recorded in tools/upstream.lock.json; tests/test_plugin.py
+      # fails when the two differ, so a re-sync updates both.
       - uses: actions/checkout@v4
         with:
           repository: r9s9/docforge
-          ref: ${{ steps.lock.outputs.commit }}
+          ref: 4880faa8cfb39be7f155b5db8c9e3bc54ee2193f
           path: upstream
       - uses: actions/setup-python@v5
         with:

@@ -17,7 +17,6 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import os
 import shutil
 import subprocess
 import sys
@@ -51,6 +50,8 @@ CONFTEST = '''
 
 import importlib.abc
 import sys
+
+sys.path.insert(0, ENGINE)
 
 import pytest
 
@@ -120,11 +121,12 @@ def main(argv: list[str] | None = None) -> int:
         for name in CURATED:
             if (tests / name).is_file():
                 shutil.copyfile(tests / name, dest / name)
-        (dest / "conftest.py").write_text(CONFTEST, encoding="utf-8")
-        env = dict(os.environ, PYTHONPATH=str(ENGINE), PYTHONDONTWRITEBYTECODE="1")
-        cmd = [sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider",
+        conftest = CONFTEST.replace("sys.path.insert(0, ENGINE)", f"sys.path.insert(0, {str(ENGINE)!r})")
+        (dest / "conftest.py").write_text(conftest, encoding="utf-8")
+        # -B: no bytecode files in the plugin's engine folder.
+        cmd = [sys.executable, "-B", "-m", "pytest", "-q", "-p", "no:cacheprovider",
                "--rootdir", str(work), str(dest), *args.pytest_args]
-        return subprocess.call(cmd, env=env, cwd=work)
+        return subprocess.call(cmd, cwd=work)
     finally:
         shutil.rmtree(work, ignore_errors=True)
 
