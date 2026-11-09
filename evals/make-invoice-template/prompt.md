@@ -7,4 +7,4 @@ timeout_seconds: 900
 allowed_tools: [Read, Glob, Grep, Skill, Bash, Write, Edit]
 ---
 
-Make some DocForge demo documents in a folder called `demo`, then build an Invoice template from `demo/invoice_1.docx` and `demo/invoice_2.docx` and save it in `docforge-templates/invoice`. Accept sensible fields with clear descriptions; don't stop to ask me about them.
+Make some DocForge demo documents in a folder called `demo`, then build an Invoice template that keeps the boilerplate fixed, from `demo/invoice_1.docx` and `demo/invoice_2.docx`, and save it in `docforge-templates/invoice`. Accept sensible fields with clear descriptions; don't stop to ask me about them.

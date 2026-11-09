@@ -85,10 +85,11 @@ Read `blocks` once as the recipient would (see "Read it back" in the writing
 rules). If something is wrong, fix the values and render again, but only
 once. Add `--pdf` when the person wants a PDF; it needs LibreOffice.
 
-## 5. Deliver
+## 5. Hand over the document
 
-Save the `.docx` (and PDF) where the person can get it. Then tell them, in a
-few lines:
+Give the person the `.docx` (and PDF) in this same reply, as
+"Hand over the files" in SKILL.md describes. In chat, render straight into
+the outputs folder. Then tell them, in a few lines:
 
 - which fields you drafted rather than found
 - which required facts are missing, and what you need from them to fill those
@@ -100,7 +101,7 @@ When the person asks for changes:
 
 - Edit only the fields concerned in the values file, following "Refining a
   draft" in the writing rules.
-- Render again and deliver the new version.
+- Render again and hand over the new version, the same way.
 - Reply with one or two sentences about what changed.
 
 ## Batch
@@ -116,7 +117,8 @@ docforge render <package> --batch rows.csv --out-dir <folder> --name-pattern "{i
 - Table and list fields go in as JSON inside a CSV cell.
 - Report how many documents were made, and list the rows that failed
   validation with their reasons.
-- In chat, zip the folder for download.
+- Hand over the documents: in chat, zip the folder into the outputs folder
+  (`docforge zip` works on any folder) and give the person the zip.
 
 ## Shared values
 

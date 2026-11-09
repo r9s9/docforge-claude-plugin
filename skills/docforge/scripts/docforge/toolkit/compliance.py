@@ -16,7 +16,7 @@ from ..compliance import check_compliance
 from ..multi_doc_differ import align_to_representative
 from ..schemas.classification import ElementClassification
 from ..schemas.compliance import ComplianceDifference, ComplianceReport, DimensionScore
-from ..schemas.enums import ClassificationType
+from ..schemas.enums import ClassificationType, ElementType
 from ..schemas.extraction import DocumentExtraction
 from ..structure_normalizer import build_extraction
 from .common import ToolkitError, check_docx
@@ -66,6 +66,33 @@ def minor_changes(
                 ),
             ))
     return found
+
+
+def fixed_text_count(tv: TemplateVersion) -> int:
+    """How many paragraphs of fixed wording the template has to check against.
+
+    A "Full template" turns every text into a field, so it has none: a check
+    against it can compare structure and formatting, but not wording.
+    """
+    from .analysis import _in_loop
+
+    rep = tv.representative()
+    if rep is None:
+        return 0
+    classifications = tv.intelligence().classifications
+    cls = {c.node_id: c for c in classifications}
+    loops = {c.node_id for c in classifications if c.classification == ClassificationType.REPEATABLE_TABLE}
+    parent = {e.node_id: e.parent_node_id for e in rep.elements}
+    count = 0
+    for e in rep.elements:
+        if not (e.text or "").strip() or e.type == ElementType.TABLE:
+            continue
+        if _in_loop(e.node_id, parent, loops):
+            continue  # a repeating table's rows are filled, not fixed
+        c = cls.get(e.node_id)
+        if c is None or c.classification == ClassificationType.FIXED:
+            count += 1
+    return count
 
 
 def check(tv: TemplateVersion, path: str | Path) -> ComplianceReport:

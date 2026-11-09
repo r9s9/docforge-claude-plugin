@@ -54,7 +54,7 @@ def _workflow(docforge: str, work: Path) -> None:
     """Make, fill and check, as the workflows tell Claude to."""
     assert _run(docforge, "doctor", work)["ok"] is True
     _run(docforge, "demo --out demo", work)
-    _run(docforge, "analyze demo/invoice_1.docx demo/invoice_2.docx --work w", work)
+    _run(docforge, "analyze demo/invoice_1.docx demo/invoice_2.docx --work w --mode smart", work)
     built = _run(docforge, 'build --work w --name "Invoice" --out "docforge-templates/invoice"', work)
     assert built["with_labels_docx"]
     (work / "values.json").write_text(json.dumps({"values": {

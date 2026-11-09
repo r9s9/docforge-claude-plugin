@@ -29,6 +29,12 @@ This prints:
 
 `references/judging-rules.md` explains each kind.
 
+If the result has a `template_note`, the template is a Full template: every
+text in it is a field, so there is no fixed wording to compare (its
+`fixed_text_checked` is 0). Tell the person the check covers structure,
+formatting and fields only, and offer to make a smart template from the same
+examples (`references/make-template.md`, `--mode smart`) to check wording.
+
 ## 2. Judge each difference
 
 Read `references/judging-rules.md`. For each difference, decide whether it is
@@ -52,8 +58,9 @@ material problems there are. Then:
 - **Material problems:** list each in plain words. Say what the template
   requires and what the document says instead.
 - **Benign differences:** summarize in one line.
-- **The report file:** deliver the Markdown report. Its side-by-side table
-  shows every changed part.
+- **The report file:** hand over the Markdown report in this same reply, as
+  "Hand over the files" in SKILL.md describes. Its side-by-side table shows
+  every changed part.
 
 Say plainly what the check is: a comparison with the template that helps a
 person review the document. Your verdicts are not legal advice. For contracts
@@ -77,8 +84,9 @@ docforge fix <package> <document>.docx --out <document>-fixed.docx [--strict]
 - **What it reports:** how many fixes it applied, and the score before and
   after.
 
-Deliver the fixed document. Mention anything fix can't repair (missing
-values, table problems) and who needs to supply it.
+Hand over the fixed document the same way, in the same reply. Mention
+anything fix can't repair (missing values, table problems) and who needs to
+supply it.
 
 ## Good to know
 

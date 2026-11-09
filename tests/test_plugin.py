@@ -167,7 +167,7 @@ def test_bundled_docxtpl_fills_templates(tmp_path):
     assert "docxtpl==0.20.2" not in doctor.get("missing", [])
     _run_vendored(skill, "demo", "--out", tmp_path / "d")
     _run_vendored(skill, "analyze", tmp_path / "d" / "invoice_1.docx",
-                  tmp_path / "d" / "invoice_2.docx", "--work", tmp_path / "w")
+                  tmp_path / "d" / "invoice_2.docx", "--work", tmp_path / "w", "--mode", "smart")
     built = _run_vendored(skill, "build", "--work", tmp_path / "w", "--name", "Invoice",
                           "--out", tmp_path / "pkg")
     assert built["with_labels_docx"]  # rendering through docxtpl worked
@@ -257,3 +257,14 @@ def test_command_routes_to_the_docforge_skill(command):
     # Cowork and Code substitute every $ARGUMENTS, so it appears once, where the request goes.
     assert body.count("$ARGUMENTS") == 1
     assert "${" not in body, "chat may leave placeholders unfilled; commands need no paths"
+
+
+@pytest.mark.parametrize("skill", SKILLS, ids=lambda p: p.name)
+def test_every_workflow_hands_over_its_files(skill):
+    """People should get the files without asking again: each workflow's last
+    step points to SKILL.md's hand-over rules, and build lists the files."""
+    text = (skill / "SKILL.md").read_text(encoding="utf-8")
+    assert "## Hand over the files" in text
+    for workflow in ("make-template.md", "fill-template.md", "check-document.md"):
+        assert '"Hand over the files"' in (skill / "references" / workflow).read_text(encoding="utf-8")
+    assert "hand_over" in (skill / "references" / "make-template.md").read_text(encoding="utf-8")

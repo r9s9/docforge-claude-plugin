@@ -26,16 +26,26 @@ just ask in plain words.
 
 | Workflow | Command | What it does |
 |---|---|---|
-| **Make a template** | `/docforge-live:make-template` | Builds a template from example documents. Claude proposes the fields, you confirm them, and it saves a versioned template package. |
+| **Make a template** | `/docforge-live:make-template` | Builds a template from example documents. Claude proposes the fields, you confirm them, and you get the template as Word files plus a versioned template package. |
 | **Fill a template** | `/docforge-live:fill-template` | Fills a template from notes, data or another document. It also revises drafts conversationally and makes many documents at once from a spreadsheet. |
 | **Check a document** | `/docforge-live:check-document` | Scores a returned document against its template and lists every difference. Claude explains which differences matter, and the boilerplate can be restored. |
+
+Templates come in the DocForge app's two modes:
+
+- **Full template** (the default): every text becomes a field, including
+  the text in cover blocks and other tables. New documents get all-new text
+  in the original design.
+- **Smart detect:** boilerplate stays fixed and only what varies becomes a
+  field. Ask for it ("keep the boilerplate fixed") when you'll check returned
+  documents against the template, since the check compares their wording
+  with the template's fixed text. It works best with two to five examples.
 
 ## Example prompts
 
 Each of these works as written, using the sample documents from the first one:
 
-1. "Make some DocForge demo documents, then build an **Invoice** template from
-   invoice_1.docx and invoice_2.docx."
+1. "Make some DocForge demo documents, then build an **Invoice** template that
+   keeps the boilerplate fixed, from invoice_1.docx and invoice_2.docx."
 2. "Fill the Invoice template for Initech & Partners: invoice INV-2026-200,
    dated 2 November 2026, with two line items: a discovery workshop, 2 × $900
    = $1,800, and a prototype build, 1 × $4,500 = $4,500. The total is $6,300."
@@ -82,12 +92,14 @@ Python 3.10 or newer.
 
 ## How to use it
 
-1. **Make a template.** Give Claude a few finished documents of the same kind.
+1. **Make a template.** Give Claude one to five finished documents of the
+   same kind, and say if the boilerplate should stay fixed (Smart detect).
    It proposes the fields, with names, types and descriptions, and asks you to
    confirm or change them.
-2. **Keep the package.** In chat you get a `.zip` to keep, plus the template
-   as Word files. In Cowork and Claude Code it is saved under
-   `docforge-templates/` in your folder.
+2. **Keep the package.** When the template is built, Claude gives you the
+   template as Word files, one with tags and one with readable «Labels». In
+   chat you also get a `.zip` to keep. In Cowork and Claude Code the package
+   is saved under `docforge-templates/` in your folder.
 3. **Fill it.** Give Claude the package and the content. You get a `.docx`, or
    a PDF when LibreOffice is available. Ask for changes in plain words.
 4. **Check it.** Give Claude the package and a returned document. You get a
@@ -135,9 +147,12 @@ unless you ask for the fix.
 - **Input:** `.docx` only. Convert `.doc` or `.odt` files first; PDFs rarely
   keep their layout, so use the Word original.
 - **Size:** one to five examples per template, up to 25 MB per file.
-- **Field detection:** two to five examples give the best results. With one
-  example, Claude reads the document's structure instead of comparing
-  versions. Review the proposed fields before building either way.
+- **Field detection (Smart detect):** two to five examples give the best
+  results. With one example, Claude reads the document's structure instead of
+  comparing versions. Review the proposed fields before building either way.
+- **Checking a Full template:** a Full template has no fixed wording, so a
+  check against it covers structure, formatting and fields, not wording. Make
+  a Smart template to check wording.
 - **What stays as-is:** text boxes, shapes, charts and embedded objects stay
   exactly as they are, but their contents don't become fields. Pictures stay
   as in the example unless you choose to make them replaceable (PNG or JPEG).
@@ -153,6 +168,8 @@ unless you ask for the fix.
 | `doctor` reports missing packages | Let Claude install them; it installs only what is missing. If your organization blocks package downloads, use Claude Code or Cowork on your computer, or ask an admin. |
 | "not a DocForge template package" | Attach the `.zip` (or folder) that making the template produced, not just `template.docx`. The package also holds the field definitions. |
 | Too few or wrong fields | Add more examples (two to five), or tell Claude which parts change. You can rename, retype or remove fields before building. |
+| A cover block or another table kept its text | Ask for a Full template, or tell Claude which parts of the table change. Every paragraph in a table cell can be a field, including tables inside cells. |
+| Claude finished without giving you the files | Ask for them once, and tell us at support@docforge.live: every workflow should end by handing over its files. |
 | A value lands in the wrong place, or is missing | Ask Claude to fix that field, or improve the field's description and rebuild the template. |
 | No PDF | LibreOffice isn't installed. Open the `.docx` and export it to PDF. |
 | Page numbers or a table of contents look stale | Word refreshes them when the document opens; accept its prompt to update fields. |

@@ -8,7 +8,7 @@ them when reviewing the proposal from `analyze`.
 
 | classification | Use for | field_type |
 |---|---|---|
-| `FIXED` | Boilerplate that reads the same in every document: titles, labels, legal clauses, layout tables | none |
+| `FIXED` | Boilerplate that reads the same in every document: titles, labels, legal clauses, and the frame of a layout table (its cells are classified one by one) | none |
 | `DYNAMIC_TEXT` | A value or passage that changes per document | `text`, or `multiline_text` for prose |
 | `DYNAMIC_DATE` | A date | `date` |
 | `DYNAMIC_PERSON` | A person's or organisation's name | `person` |
@@ -30,8 +30,9 @@ them when reviewing the proposal from `analyze`.
   Read the document structurally. Its skeleton is the headings, labels and
   legal boilerplate. Its content (the paragraphs and lists under those
   headings) is what a new document of this type replaces, so make that content
-  `DYNAMIC`. A template whose body is all `FIXED` reproduces one document and
-  can't be filled.
+  `DYNAMIC`. That includes text inside tables: a cover block's title, summary,
+  date and document number are content. A template whose body is all `FIXED`
+  reproduces one document and can't be filled.
 - **Labels stay, values vary.** When a value follows a label in the same
   paragraph ("Invoice Date: 2026-06-01"), keep the label in `static_prefix`
   ("Invoice Date: ", trailing space included) and make only the value dynamic.
@@ -39,10 +40,22 @@ them when reviewing the proposal from `analyze`.
 - **Word's own content.** Use `AUTO_FIELD` for page numbers, tables of
   contents and Word fields. Never give `FIXED` or `AUTO_FIELD` content a
   `field_name`.
-- **Layout tables are fixed.** A table that lays out a page (a cover block, an
-  address panel, a signature grid, a logo cell) is `FIXED`, however many cells
-  it has. Turning it into a loop destroys the layout when a document has no
-  rows for it. `REPEATABLE_TABLE` is only for rows of the same kind.
+- **Layout tables keep their shape; their text is classified cell by cell.**
+  A table that lays out a page (a cover block, an address panel, a signature
+  grid, a logo cell) is never a `REPEATABLE_TABLE`: turning it into a loop
+  destroys the layout when a document has no rows for it. `REPEATABLE_TABLE`
+  is only for rows of the same kind. Leave the table node itself `FIXED`, and
+  classify the text inside it:
+  - `outline` lists each paragraph inside a cell right after its table,
+    marked `in_table` (the table's `node_id`) and `cell` (`r0c1` is row 0,
+    column 1). A table nested inside a cell is listed the same way.
+  - Classify each one like any other paragraph. On a cover block, the project
+    code, title, summary, goal, date, document number and revision are
+    content, so they become fields (with `static_prefix` for a label such as
+    "Revision "). Separators ("|"), a copyright line and the company's own
+    name and address stay `FIXED`.
+  - Never tell the person a table's text "can't be made into a template":
+    every paragraph in a cell can be a field.
 - **Furniture is fixed.** Short labels that name a part of the document
   rather than say anything ("TABLE OF CONTENTS", "REVISIONS", "APPENDICES",
   "REFERENCES") are `FIXED`.
@@ -109,8 +122,9 @@ so group fields the way the document groups them.
 
 In `--mode full` every text becomes a field and no original text survives:
 
-- Every non-empty text element is `DYNAMIC_*` or `REPEATABLE_*`. Only Word
-  auto-fields and pictures stay fixed. Don't change anything back to `FIXED`;
+- Every non-empty text element is `DYNAMIC_*` or `REPEATABLE_*`, including the
+  text in every table cell (cover blocks and tables nested in cells too). Only
+  Word auto-fields and pictures stay fixed. Don't change anything back to `FIXED`;
   the toolkit re-applies this rule after your decisions.
 - Headings become `DYNAMIC_TEXT` fields named after their role
   (`scope_title`).
@@ -119,7 +133,10 @@ In `--mode full` every text becomes a field and no original text survives:
 - `static_prefix` and `static_suffix` are always empty, so a value holds its
   whole line, label included ("Report Date: 2026-11-02"). Type such fields
   `text`, not `date` or `number`.
-- Focus your review on good names, types and specific descriptions.
+- Focus your review on good names, types and specific descriptions. Fields
+  that the toolkit named after a cell's example text (`cell`, `revision_0`,
+  `x50003_copilot`) need a name after their role (`separator`, `revision`,
+  `project_code`).
 
 ## Pictures
 

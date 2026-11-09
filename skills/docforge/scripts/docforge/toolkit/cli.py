@@ -4,12 +4,12 @@ Every command prints one JSON object. On failure it prints
 {"ok": false, "error": ..., "hint": ...} and exits with status 1.
 
 Make a template:
-  analyze <examples.docx…> --work DIR [--mode smart|full]
+  analyze <examples.docx…> --work DIR [--mode full|smart]   full (default): every text is a field
   outline --work DIR [--only all|review|fields] [--offset N] [--limit N]
   node | neighbors | evidence --work DIR <node_id>
   review --work DIR                      check decisions.json, list the resulting fields
   preview --work DIR --out FILE.docx [--tags] [--pdf]
-  build --work DIR --name NAME --out PACKAGE_DIR [--zip FILE.zip]
+  build --work DIR --name NAME --out PACKAGE_DIR [--zip FILE.zip] [--deliver DIR]
 
 Fill a template:
   fields PACKAGE                         what each field holds and where it sits
@@ -147,7 +147,40 @@ def cmd_build(a):
     }
     if a.zip:
         result["zip"] = str(zip_package(tv.package_root, a.zip))
+    result["hand_over"] = _hand_over(result, a)
+    result["next"] = (
+        "Give the person the files in hand_over now, in the same reply as your summary "
+        "(SKILL.md, \"Hand over the files\")."
+    )
     return result
+
+
+def _hand_over(result: dict, a) -> list[str]:
+    """The files the person gets: the template, its readable copy, and the zip.
+
+    With --deliver, the two Word files are also copied there under the
+    template's name, so they can sit next to other templates' files.
+    """
+    import shutil
+
+    from .common import safe_filename
+
+    docs = [("template", result["template_docx"]), ("with labels", result.get("with_labels_docx"))]
+    files = []
+    for label, src in docs:
+        if not src:
+            continue
+        if a.deliver:
+            dest = Path(a.deliver)
+            dest.mkdir(parents=True, exist_ok=True)
+            target = dest / safe_filename(f"{a.name} - {label}.docx", f"{label}.docx")
+            shutil.copyfile(src, target)
+            files.append(str(target))
+        else:
+            files.append(src)
+    if result.get("zip"):
+        files.append(result["zip"])
+    return files
 
 
 # --- fill a template --------------------------------------------------------
@@ -238,7 +271,7 @@ def cmd_sample(a):
 
 def cmd_check(a):
     from .common import write_json
-    from .compliance import apply_verdicts, check, markdown, summary
+    from .compliance import apply_verdicts, check, fixed_text_count, markdown, summary
 
     tv = _open(a)
     report = check(tv, a.document)
@@ -246,6 +279,13 @@ def cmd_check(a):
     if a.verdicts:
         result["verdicts_applied"] = apply_verdicts(report, read_json(a.verdicts))
     result.update(summary(report, limit=a.limit))
+    result["fixed_text_checked"] = fixed_text_count(tv)
+    if not result["fixed_text_checked"]:
+        result["template_note"] = (
+            "This template has no fixed wording: every text is a field (a Full template). "
+            "The check compares structure, formatting and fields, not wording. To check "
+            "wording, make a Smart template from the same examples."
+        )
     if a.report:
         write_json(a.report, report.model_dump(mode="json"))
         result["report"] = a.report
@@ -357,8 +397,9 @@ def build_parser() -> argparse.ArgumentParser:
     p = add("analyze", cmd_analyze, "read, compare and classify 1-5 example .docx files")
     p.add_argument("files", nargs="+", help="example .docx files of the same kind")
     work(p)
-    p.add_argument("--mode", choices=["smart", "full"], default="smart",
-                   help="smart: keep boilerplate fixed; full: every text becomes a field")
+    p.add_argument("--mode", choices=["full", "smart"], default="full",
+                   help="full (default, the app's \"Full template\"): every text becomes a field; "
+                        "smart (\"Smart detect\"): boilerplate stays fixed, only what varies is a field")
 
     p = add("outline", cmd_outline, "the representative document with proposal and evidence")
     work(p)
@@ -396,6 +437,8 @@ def build_parser() -> argparse.ArgumentParser:
             p.add_argument("--out", required=True, help="package folder (a new version if it exists)")
             p.add_argument("--notes", help="a note stored with this version")
             p.add_argument("--zip", help="also write a .zip of the package here")
+            p.add_argument("--deliver", help="also copy template.docx and with-labels.docx into this "
+                                              "folder, named after the template (the chat outputs folder)")
 
     p = add("fields", cmd_fields, "describe a template's fields and sections")
     package(p)

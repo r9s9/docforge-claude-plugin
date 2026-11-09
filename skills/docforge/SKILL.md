@@ -94,9 +94,8 @@ Don't install anything else.
     ```
 
   - **Work** in a scratch folder.
-  - **Deliver files** by saving them in the outputs folder, usually
-    `/mnt/user-data/outputs`. If no such folder exists, save them where the
-    app shows files to the person, and say where you saved them.
+  - **Deliver files** in the outputs folder, usually
+    `/mnt/user-data/outputs` (see "Hand over the files").
   - A template package arrives as a `.zip`, which every command accepts
     directly.
   - To change a package (its `notes.md`), unzip it into a scratch folder, work
@@ -106,3 +105,26 @@ Don't install anything else.
 
 Documents stay where they are: the toolkit runs locally and sends nothing
 anywhere.
+
+## Hand over the files
+
+Every workflow ends by giving the person its files, in the same reply as your
+summary. Never end with only a summary, and don't wait to be asked:
+
+| Workflow | Files |
+|---|---|
+| Make a template | the template `.docx`, the "with labels" `.docx`, and in chat the package `.zip` (`build` lists them in `hand_over`) |
+| Fill a template | the filled `.docx` (and PDF); for a batch, the folder or its `.zip` |
+| Check a document | the Markdown report, and the fixed `.docx` when the fix ran |
+
+How:
+
+- **Chat:** the files must be in the outputs folder (usually
+  `/mnt/user-data/outputs`); `build --deliver` and `--zip` can write them
+  there directly. If the app gives you a tool to present or share files with
+  the person (such as `present_files`), call it with every file. Otherwise
+  name each file in your reply. If there is no outputs folder, save them
+  where the app shows files to the person and say where.
+- **Cowork and Claude Code:** if the app gives you a tool to send or present
+  files to the person, use it for every file. Otherwise end your reply with
+  each file's full path, one per line, as a link where the app shows links.

@@ -20,17 +20,25 @@ Run every command as described under "Run the toolkit" in SKILL.md, and run
 - Turn PDFs into Word with care: the layout rarely survives, so ask for the
   Word original.
 
-Pick the mode:
+Pick the mode. These are the DocForge app's two choices, with the same
+default:
 
-- **smart** (default): boilerplate stays fixed and only what varies becomes
-  a field.
-- **full**: every text becomes a field, for a blank skeleton of the
-  document's design.
+- **full** (the default; "Full template" in the app): every text becomes a
+  field, including the text in cover blocks and other tables. New documents
+  get 100% new text in the original design.
+- **smart** ("Smart detect" in the app): boilerplate stays fixed and only
+  what varies becomes a field. Use it when the person wants boilerplate kept
+  as it is, or wants to check returned documents against the template: the
+  check compares a document with the template's fixed wording, and a full
+  template has none. It works best with two to five examples.
+
+If the request doesn't say which, use full, and mention smart in one line
+when you confirm the fields (step 5).
 
 ## 2. Analyze
 
 ```bash
-docforge analyze example1.docx example2.docx --work <workdir> [--mode full]
+docforge analyze example1.docx example2.docx --work <workdir> [--mode smart]
 ```
 
 Use a new scratch folder for `<workdir>`. The summary shows:
@@ -57,9 +65,13 @@ Read `references/classification-rules.md` before deciding anything. Then:
 Check every flagged element and anything the rules say is commonly wrong:
 
 - boilerplate made into a field, or content left fixed
+- text inside tables left fixed: `outline` lists the paragraphs of a cover
+  block or other layout table right after the table (`in_table`, `cell`), and
+  each can be a field
 - labels inside values (use `static_prefix`)
 - layout tables made repeatable
-- vague names and descriptions
+- vague names and descriptions, and names taken from example text (`cell`,
+  `revision_0`)
 
 Also give the template sections that follow its headings.
 
@@ -87,10 +99,11 @@ Fix any errors and act on the warnings.
 ## 5. Confirm with the person
 
 Show the fields as a short table: name, what it holds, type, required, and
-the example value. Mention briefly what stays fixed. Ask if anything should
-change: renames, a field that should stay fixed, fixed text that should vary,
-or required versus optional. Apply changes to `decisions.json` and run
-`review` again.
+the example value. Mention briefly what stays fixed, and which mode you used
+(offer the other in one line). Ask if anything should change: renames, a
+field that should stay fixed, fixed text that should vary, or required versus
+optional. Apply changes to `decisions.json` and run `review` again. A change
+of mode means running `analyze` again with the other `--mode`.
 
 To show the actual template first:
 
@@ -100,23 +113,35 @@ docforge preview --work <workdir> --out <file>.docx [--tags] [--pdf]
 
 ## 6. Build the package
 
-```bash
-docforge build --work <workdir> --name "<Template name>" --out <package-folder> [--zip <file>.zip]
-```
+- **Chat:** build the package in your scratch folder, and write the files
+  for the person straight into the outputs folder:
+
+  ```bash
+  docforge build --work <workdir> --name "<Template name>" --out <scratch>/<package-folder> --zip <outputs>/<name>.docforge.zip --deliver <outputs>
+  ```
+
+- **Cowork and Claude Code:**
+
+  ```bash
+  docforge build --work <workdir> --name "<Template name>" --out docforge-templates/<name>
+  ```
 
 Building into an existing package folder adds the next version; earlier
 versions are kept. `references/package-format.md` describes the package.
 
-## 7. Deliver
+## 7. Hand over the files
 
-- **Chat:** save the zip, `template.docx` and `with-labels.docx` in the
-  outputs folder. Say: "attach the .zip next time to fill or check documents
-  with it".
-- **Cowork and Claude Code:** point to the package folder and its
-  `with-labels.docx`.
+Finish in the same reply as the build, without waiting to be asked: give the
+person every file in the build's `hand_over` list, as "Hand over the files"
+in SKILL.md describes. They are:
 
-Summarize in two or three sentences: the document type, how many fields
-there are, and what stays fixed. Offer to fill a first document
+- the template as `.docx`, with `{{ tags }}` where content goes
+- the same template "with labels", showing «Label» where each field goes
+- in chat, the package `.zip`. Say: "attach the .zip next time to fill or
+  check documents with it".
+
+Then summarize in two or three sentences: the document type, how many
+fields there are, and what stays fixed. Offer to fill a first document
 (`references/fill-template.md`).
 
 ## Good to know

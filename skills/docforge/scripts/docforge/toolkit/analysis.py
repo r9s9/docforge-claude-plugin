@@ -92,32 +92,89 @@ def drop_loop_owned(rep: DocumentExtraction, result: ClassificationResult) -> li
     would be phantom fields: listed, but never filled. Layout tables are not
     affected: a cell in a fixed table can still be a field.
     """
-    loops = {
-        c.node_id for c in result.classifications
-        if c.classification == ClassificationType.REPEATABLE_TABLE
-    }
+    loops = _loop_tables(result)
     if not loops:
         return []
     parent = {e.node_id: e.parent_node_id for e in rep.elements}
-
-    def inside_loop(node_id: str) -> bool:
-        seen: set[str] = set()
-        p = parent.get(node_id)
-        while p and p not in seen:
-            if p in loops:
-                return True
-            seen.add(p)
-            p = parent.get(p)
-        return False
-
     dropped = []
     for c in result.classifications:
-        if c.field_name and inside_loop(c.node_id):
+        if c.field_name and _in_loop(c.node_id, parent, loops):
             dropped.append(c.field_name)
             c.classification = ClassificationType.FIXED
             c.field_name = None
             c.field_type = None
     return dropped
+
+
+def _loop_tables(result: ClassificationResult) -> set[str]:
+    return {
+        c.node_id for c in result.classifications
+        if c.classification == ClassificationType.REPEATABLE_TABLE
+    }
+
+
+def _in_loop(node_id: str, parent: dict[str, str | None], loops: set[str]) -> bool:
+    seen: set[str] = set()
+    p = parent.get(node_id)
+    while p and p not in seen:
+        if p in loops:
+            return True
+        seen.add(p)
+        p = parent.get(p)
+    return False
+
+
+def tag_every_cell(rep: DocumentExtraction, result: ClassificationResult) -> list[str]:
+    """"Full template" also turns the text in nested tables into fields.
+
+    Upstream's tags-only pass gives each cell of a layout table its own field,
+    but only one level down. A table inside a cell, such as the date, document
+    number and revision strip at the foot of a cover block, kept its text
+    fixed. Its cells get fields the same way here. Cells in a repeating table
+    stay with that table's loop.
+    """
+    from ..ai_classifier.tags_only import (
+        _MULTILINE_THRESHOLD,
+        _cell_name,
+        _force_dynamic,
+        _is_exempt,
+        _unique,
+    )
+
+    parent = {e.node_id: e.parent_node_id for e in rep.elements}
+    loops = _loop_tables(result)
+    by_node = {c.node_id: c for c in result.classifications}
+    used = {c.field_name for c in result.classifications if c.field_name}
+    tagged = []
+    for e in rep.elements:
+        if e.parent_node_id is None or e.type == ElementType.TABLE:
+            continue
+        if _in_loop(e.node_id, parent, loops):
+            continue
+        c = by_node.get(e.node_id)
+        if _is_exempt(e, c):
+            continue
+        if c is not None and c.field_name and needs_field(c.classification):
+            continue
+        if c is None:
+            c = ElementClassification(node_id=e.node_id, source=result.source or "heuristic")
+            result.classifications.append(c)
+            by_node[e.node_id] = c
+        text = (e.text or "").strip()
+        name = _unique(_cell_name(text), used)
+        used.add(name)
+        _force_dynamic(
+            c,
+            classification=ClassificationType.DYNAMIC_TEXT,
+            field_type=(
+                FieldType.MULTILINE_TEXT if len(text) > _MULTILINE_THRESHOLD else FieldType.TEXT
+            ),
+            name=name,
+            section="",
+            text=text,
+        )
+        tagged.append(name)
+    return tagged
 
 
 def keep_page_fields(rep: DocumentExtraction, result: ClassificationResult) -> list[str]:
@@ -190,7 +247,7 @@ def load_workspace(path: str | Path) -> Workspace:
     return Workspace(root=root, meta=meta, extractions=extractions, diff=diff, proposal=proposal)
 
 
-def analyze(files: list[str], work: str | Path, mode: str = "smart") -> dict:
+def analyze(files: list[str], work: str | Path, mode: str = "full") -> dict:
     """Read, compare and classify 1–5 example documents into a workspace."""
     if mode not in MODES:
         raise ToolkitError(f"unknown mode {mode!r}; use one of {sorted(MODES)}")
@@ -238,6 +295,8 @@ def analyze(files: list[str], work: str | Path, mode: str = "smart") -> dict:
     proposal = classify(extractions[rep_index], diff, mode=MODES[mode])
     drop_loop_owned(extractions[rep_index], proposal)
     keep_page_fields(extractions[rep_index], proposal)
+    if mode == "full":
+        tag_every_cell(extractions[rep_index], proposal)
 
     meta = {
         "format": "docforge-workspace",
@@ -329,6 +388,11 @@ def _clip(text: str, limit: int) -> str:
 
 def _node_row(e, c, nd, text_chars: int) -> dict:
     row: dict = {"node_id": e.node_id, "type": e.type.value}
+    if e.parent_node_id:
+        # Inside a table cell: which table, and which cell ("r0c1").
+        row["in_table"] = e.parent_node_id
+        if e.subtype:
+            row["cell"] = e.subtype
     if e.style_name:
         row["style"] = e.style_name
     row["text"] = _clip(e.text or "", text_chars)
@@ -372,13 +436,23 @@ def outline(
     ws: Workspace, *, offset: int = 0, limit: int = 80, only: str = "all",
     text_chars: int = TEXT_CHARS,
 ) -> dict:
-    """The representative document in order, with the proposal and diff evidence."""
+    """The representative document in order, with the proposal and diff evidence.
+
+    The text inside table cells is listed right after its table, marked with
+    ``in_table`` and ``cell``, so the text of a cover block or another layout
+    table can be classified one paragraph at a time. Cells of a table proposed
+    as a loop are left out: the loop fills them.
+    """
     if only not in ("all", "review", "fields"):
         raise ToolkitError("--only must be one of: all, review, fields")
     cls = {c.node_id: c for c in ws.proposal.classifications}
     diff_by = {d.representative_node_id: d for d in (ws.diff.node_diffs if ws.diff else [])}
+    parent = {e.node_id: e.parent_node_id for e in ws.rep.elements}
+    loops = _loop_tables(ws.proposal)
     rows = []
-    for e in ws.rep.top_level_elements():
+    for e in ws.rep.elements:
+        if e.parent_node_id and _in_loop(e.node_id, parent, loops):
+            continue
         c = cls.get(e.node_id)
         if only == "review" and not (c and needs_review(c)):
             continue
@@ -613,6 +687,8 @@ def apply_decisions(ws: Workspace, decisions: dict) -> Draft:
         enforce_tags_only(rep, result)
         keep_page_fields(rep, result)
     drop_loop_owned(rep, result)
+    if ws.mode == "full":
+        tag_every_cell(rep, result)
 
     names_by_kind: dict[str, set[str]] = defaultdict(set)
     for c in result.classifications:

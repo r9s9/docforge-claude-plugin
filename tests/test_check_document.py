@@ -66,3 +66,15 @@ def test_unsafe_package_zip_is_rejected(cli, tmp_path):
 def test_missing_package_is_a_clear_error(cli, tmp_path):
     code, out = cli("check", tmp_path / "nope", tmp_path / "doc.docx")
     assert code == 1 and "not found" in out["error"]
+
+
+def test_check_says_when_a_template_has_no_fixed_wording(cli, demo_dir, tmp_path, invoice_package):
+    """A Full template turns every text into a field, so a check can't compare wording."""
+    code, out = cli("check", invoice_package, demo_dir / "invoice_edited.docx")
+    assert out["fixed_text_checked"] > 0 and "template_note" not in out
+    work = tmp_path / "full"
+    cli("analyze", demo_dir / "invoice_1.docx", demo_dir / "invoice_2.docx", "--work", work)
+    cli("build", "--work", work, "--name", "Invoice", "--out", tmp_path / "full-pkg")
+    code, out = cli("check", tmp_path / "full-pkg", demo_dir / "invoice_edited.docx")
+    assert code == 0 and out["fixed_text_checked"] == 0
+    assert "Smart template" in out["template_note"]

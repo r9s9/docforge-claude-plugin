@@ -45,7 +45,7 @@ def invoice_package(tmp_path, demo_dir, cli) -> Path:
     """An invoice template built from the two demo invoices, with light edits."""
     work = tmp_path / "work"
     code, out = cli("analyze", demo_dir / "invoice_1.docx", demo_dir / "invoice_2.docx",
-                    "--work", work)
+                    "--work", work, "--mode", "smart")
     assert code == 0, out
     (work / "decisions.json").write_text(json.dumps({
         "document_type": "Commercial invoice",
