@@ -54,18 +54,17 @@ from the app's `ai/prompts.py`.
 - **Patched on copy:** `ai_router/document.py` gets anchored edits that remove
   model calls. The sync fails loudly if upstream changes shape there.
 
-To pick up upstream changes:
+To pick up upstream changes, with a checkout of r9s9/docforge next to this
+repository:
 
-```bash
-python tools/sync_upstream.py --from ../docforge --status   # what changed since the last sync
-python tools/sync_upstream.py --from ../docforge            # copy, patch, record the commit
-python tools/build.py                                       # limits and bundled-code checks
-python tools/run_upstream_tests.py --from ../docforge       # upstream's engine tests on the copy
-pytest
-```
-
-After a sync, set `ref:` in `.github/workflows/ci.yml` to the new commit in
-`tools/upstream.lock.json`; a test fails until the two match.
+1. `tools/sync_upstream.py --from ../docforge --status` lists what changed
+   since the last sync.
+2. `tools/sync_upstream.py --from ../docforge` copies the engine, applies the
+   patches and records the commit.
+3. Run the checks below, plus `tools/run_upstream_tests.py --from ../docforge`
+   for upstream's own engine tests on the copy.
+4. Set `ref:` in `.github/workflows/ci.yml` to the new commit in
+   `tools/upstream.lock.json`; a test fails until the two match.
 
 `--status` also lists watched upstream files: the services and prompts that
 toolkit modules and skill references are adapted from. Review the plugin side
@@ -88,24 +87,20 @@ have docxtpl, and bundling it means filling templates needs no download.
 
 ## Setup and checks
 
-Create a virtual environment in `.venv` with the packages in
-`skills/docforge/scripts/requirements.txt`, plus the pytest and ruff versions
-that `.github/workflows/ci.yml` names. Then run:
+`.github/workflows/ci.yml` is the reference: its "test" job lists the
+packages to have in a virtual environment and every check to run, and the
+"upstream-parity" job runs upstream's engine tests. Run the same checks
+before pushing:
 
-```bash
-.venv/bin/python tools/build.py
-.venv/bin/python tools/sync_upstream.py --verify
-.venv/bin/pytest -q
-.venv/bin/ruff check skills/docforge/scripts/docforge/toolkit skills/docforge/scripts/docforge_cli.py tools tests
-claude plugin validate --strict .
-```
+- `tools/build.py`: the upload, directory and bundled-code checks
+- `tools/sync_upstream.py --verify`: the engine still matches its upstream
+  lock
+- `pytest`: the tests in `tests/`
+- `ruff check`, with the settings in the workflow's Lint step
+- `claude plugin validate --strict .`
 
-To try the CLI directly:
-
-```bash
-python skills/docforge/scripts/docforge_cli.py demo --out docforge-demo
-python skills/docforge/scripts/docforge_cli.py analyze docforge-demo/invoice_1.docx docforge-demo/invoice_2.docx --work invoice-work
-```
+To try the CLI directly, run `skills/docforge/scripts/docforge_cli.py demo`
+with `--out` and a folder name, then `analyze` on two of the demo invoices.
 
 ## Evals
 
@@ -121,11 +116,8 @@ python skills/docforge/scripts/docforge_cli.py analyze docforge-demo/invoice_1.d
 Each case asks Claude to generate the demo documents first, so no binary
 fixtures are needed.
 
-Run them from the repository root:
-
-```bash
-claude plugin eval . --allow-tools Bash Write Edit
-```
+Run them from the repository root with
+`claude plugin eval . --allow-tools Bash Write Edit`.
 
 - **Python prerequisites:** the runs use Claude Code's sandboxed Bash, so
   `python3` on your machine needs the packages in `skills/docforge/scripts/requirements.txt`

@@ -25,7 +25,14 @@ jobs:
       - name: Engine matches its upstream lock
         run: python tools/sync_upstream.py --verify
       - name: Lint
-        run: ruff check skills/docforge/scripts/docforge/toolkit skills/docforge/scripts/docforge_cli.py tools tests
+        # The settings live here rather than in a ruff.toml: the plugin directory
+        # accepts only Markdown, JSON, code and images in the plugin folder.
+        run: >-
+          ruff check --isolated --line-length 100 --target-version py310
+          --extend-exclude skills/docforge/scripts/_vendor
+          --select E,F,I,B,UP,W --ignore E501,UP042
+          --config "lint.isort.known-first-party = ['docforge']"
+          skills/docforge/scripts/docforge/toolkit skills/docforge/scripts/docforge_cli.py tools tests
       - name: Tests
         run: pytest -q
 
