@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Copy DocForge's deterministic document engine from an upstream checkout.
 
 The plugin runs DocForge's engine inside Claude's code sandbox, and Claude does

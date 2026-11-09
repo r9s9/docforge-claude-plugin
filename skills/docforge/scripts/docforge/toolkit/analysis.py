@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import re
 import shutil
-from collections import Counter, defaultdict
+from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -690,11 +690,11 @@ def apply_decisions(ws: Workspace, decisions: dict) -> Draft:
     if ws.mode == "full":
         tag_every_cell(rep, result)
 
-    names_by_kind: dict[str, set[str]] = defaultdict(set)
+    names_by_kind: dict[str, set[str]] = {}
     for c in result.classifications:
         if c.field_name and needs_field(c.classification):
             _check_name(c.field_name, c.node_id, errors, warnings)
-            names_by_kind[c.field_name].add(c.classification.value)
+            names_by_kind.setdefault(c.field_name, set()).add(c.classification.value)
     for name, kinds in names_by_kind.items():
         if len(kinds) > 1:
             errors.append(f"field_name {name!r} is used for different kinds of content ({sorted(kinds)})")

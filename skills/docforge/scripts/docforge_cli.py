@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """DocForge toolkit for Claude skills. Run `python3 docforge_cli.py --help`.
 
 Every command prints one JSON object. The engine lives next to this file in

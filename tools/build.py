@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Check the plugin against the limits of Claude's apps and Anthropic's directory.
 
 - Bundled third-party code (skills/docforge/scripts/_vendor) is exactly the

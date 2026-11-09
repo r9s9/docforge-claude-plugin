@@ -300,3 +300,39 @@ def test_eval_cases_write_amounts_without_a_dollar_sign():
     variable, a command assembled at run time, in prompts Claude acts on."""
     for path in sorted((ROOT / "evals").rglob("*.md")):
         assert not re.search(r"\$[0-9]", path.read_text(encoding="utf-8")), path
+
+
+# Text the directory's security scan reads as shell commands, wherever it sits
+# in the plugin folder, code and documentation alike. Each one was a finding:
+SCAN_PATTERNS = {
+    # set, env or printenv alone in brackets reads as dumping the environment,
+    # which made "Uses a credential from the user's machine" a policy hold.
+    "environment dump": re.compile(r"\(\s*(?:set|env|printenv)\s*\)"),
+    # "$" and a bracket is command substitution.
+    "command substitution": re.compile(r"\$\("),
+    # eval right before a backtick, quote, bracket or "$" reads as running
+    # fetched code ("Contains a download-and-run command").
+    "eval of fetched code": re.compile(r"\b(?:eval|exec)\s*[`\"'($]"),
+}
+TEXT_SUFFIXES = {".py", ".md", ".json", ".yml", ".yaml", ".txt", ".svg", ".toml", ".cfg", ".csv"}
+
+
+def test_no_text_the_directory_scan_reads_as_a_shell_command():
+    skip = {".git", ".venv", "__pycache__", ".pytest_cache", ".ruff_cache", "results"}
+    found = []
+    for path in sorted(ROOT.rglob("*")):
+        rel = path.relative_to(ROOT)
+        if path.suffix not in TEXT_SUFFIXES or skip & set(rel.parts) or not path.is_file():
+            continue
+        for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+            for what, pattern in SCAN_PATTERNS.items():
+                if pattern.search(line) and path != Path(__file__):
+                    found.append(f"{rel}:{number}: {what}: {line.strip()[:80]}")
+    assert not found, "\n".join(found)
+
+
+def test_python_files_have_no_shebang():
+    """The launcher and tools always run as `python <file>`, and the scan
+    reads the env in a shebang as a command."""
+    for path in [*(ROOT / "skills").rglob("*.py"), *(ROOT / "tools").glob("*.py")]:
+        assert not path.read_text(encoding="utf-8").startswith("#!"), path

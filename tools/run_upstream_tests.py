@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Run DocForge's own engine tests against the plugin's copy of the engine.
 
 The plugin's engine is copied from upstream (see tools/sync_upstream.py), so

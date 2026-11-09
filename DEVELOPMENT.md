@@ -17,7 +17,7 @@ tools/UPSTREAM.md, upstream.lock.json   which DocForge commit the engine came fr
 tools/build.py                      checks the upload and directory limits
 tools/run_upstream_tests.py         runs DocForge's own engine tests against the copy
 tests/                              tests for the toolkit and CLI
-evals/                              `claude plugin eval` cases (with and without the plugin)
+evals/                              test cases for Claude Code's plugin evals (with and without the plugin)
 ```
 
 There is one skill with three workflows, and the engine lives exactly once,
@@ -104,10 +104,11 @@ with `--out` and a folder name, then `analyze` on two of the demo invoices.
 
 ## Evals
 
-`evals/` holds five cases in the
-[`claude plugin eval`](https://code.claude.com/docs/en/plugin-evals) format:
+`evals/` holds six cases in the format of Claude Code's plugin evals
+("Plugin evals" in the Claude Code docs):
 
-- make a template
+- make a template that keeps the boilerplate fixed
+- make a Full template from one report, and hand over its files
 - fill from a brief
 - check and fix
 - batch
@@ -116,8 +117,8 @@ with `--out` and a folder name, then `analyze` on two of the demo invoices.
 Each case asks Claude to generate the demo documents first, so no binary
 fixtures are needed.
 
-Run them from the repository root with
-`claude plugin eval . --allow-tools Bash Write Edit`.
+Run them from the repository root with Claude Code's plugin eval command,
+allowing the Bash, Write and Edit tools.
 
 - **Python prerequisites:** the runs use Claude Code's sandboxed Bash, so
   `python3` on your machine needs the packages in `skills/docforge/scripts/requirements.txt`
